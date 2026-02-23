@@ -29,7 +29,7 @@ export default function AdminJobForm() {
     status: "DRAFT",
   });
 
-  // ✅ guardamos el status original para detectar cambios
+  // guardar el status original para detectar cambios
   const originalStatusRef = useRef("DRAFT");
 
   const [loading, setLoading] = useState(editing);
@@ -59,7 +59,7 @@ export default function AdminJobForm() {
         };
 
         setForm(next);
-        originalStatusRef.current = next.status; // ✅ status original
+        originalStatusRef.current = next.status; //  status original
       } catch (e) {
         setError(e.message);
       } finally {
@@ -83,7 +83,7 @@ export default function AdminJobForm() {
       setSaving(true);
 
       if (editing) {
-        // ✅ 1) Actualiza datos generales (sin depender de status)
+        // 1) Actualiza datos generales (sin depender de status)
         const { status, ...rest } = form;
 
         await apiFetch(`/admin/jobs/${id}`, {
@@ -91,7 +91,7 @@ export default function AdminJobForm() {
           body: JSON.stringify(rest),
         });
 
-        // ✅ 2) Si el status cambió, usa el endpoint PATCH /status
+        // 2) Si el status cambió, usa el endpoint PATCH /status
         const prevStatus = originalStatusRef.current;
         if (status !== prevStatus) {
           await apiFetch(`/admin/jobs/${id}/status`, {
@@ -101,14 +101,14 @@ export default function AdminJobForm() {
           originalStatusRef.current = status;
         }
 
-        setMsg("✅ Vacante actualizada.");
+        setMsg("Vacante actualizada.");
       } else {
         // crear (aquí sí mandamos status)
         await apiFetch("/admin/jobs", {
           method: "POST",
           body: JSON.stringify(form),
         });
-        setMsg("✅ Vacante creada.");
+        setMsg("Vacante creada.");
       }
 
       setTimeout(() => nav("/rrhh/vacantes"), 400);

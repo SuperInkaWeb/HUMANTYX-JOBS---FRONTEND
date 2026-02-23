@@ -5,14 +5,16 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
 
-  // ✅ Normalizamos el rol para evitar "candidate", "CANDIDATE ", etc.
   const role = (user?.role || "").trim().toUpperCase();
-  console.log("NAV user:", user);
 
   function handleLogout() {
     logout();
     nav("/");
   }
+
+  const isAdmin = role === "ADMIN";
+  const isRRHH = role === "RRHH";
+  const isCandidate = role === "CANDIDATE";
 
   return (
     <nav className="navbar navbar-expand-lg border-bottom bg-white">
@@ -22,8 +24,8 @@ export default function Navbar() {
           Humantyx Jobs
         </Link>
 
-        <div className="d-flex align-items-center gap-2">
-          {/* Public */}
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          {/* Público */}
           <Link to="/empleos" className="btn btn-link text-decoration-none">
             Buscar empleos
           </Link>
@@ -41,7 +43,7 @@ export default function Navbar() {
           )}
 
           {/* CANDIDATE */}
-          {user && role === "CANDIDATE" && (
+          {user && isCandidate && (
             <>
               <Link to="/mi-perfil" className="btn btn-outline-dark rounded-pill px-3">
                 Mi perfil
@@ -57,8 +59,8 @@ export default function Navbar() {
             </>
           )}
 
-          {/* ADMIN / RRHH */}
-          {user && (role === "ADMIN" || role === "RRHH") && (
+          {/* RRHH */}
+          {user && isRRHH && (
             <>
               <Link
                 to="/rrhh/vacantes"
@@ -67,10 +69,12 @@ export default function Navbar() {
                 Panel RRHH
               </Link>
 
-              <Link to="/rrhh/candidatos" className="btn btn-outline-dark rounded-pill px-4">
+              <Link
+                to="/rrhh/candidatos"
+                className="btn btn-outline-dark rounded-pill px-3"
+              >
                 Candidatos
               </Link>
-
 
               <button onClick={handleLogout} className="btn btn-dark rounded-pill px-3">
                 Salir
@@ -78,8 +82,39 @@ export default function Navbar() {
             </>
           )}
 
-          {/* ✅ Fallback (si rol raro o no llega) */}
-          {user && role !== "CANDIDATE" && role !== "ADMIN" && role !== "RRHH" && (
+          {/* ADMIN */}
+          {user && isAdmin && (
+            <>
+              <Link
+                to="/rrhh/vacantes"
+                className="btn btn-outline-primary rounded-pill px-3"
+              >
+                Panel RRHH
+              </Link>
+
+              <Link
+                to="/rrhh/candidatos"
+                className="btn btn-outline-dark rounded-pill px-3"
+              >
+                Candidatos
+              </Link>
+
+              {/* 🔥 NUEVO LINK SOLO ADMIN */}
+              <Link
+                to="/rrhh/invitar"
+                className="btn btn-outline-success rounded-pill px-3"
+              >
+                Invitar usuario
+              </Link>
+
+              <button onClick={handleLogout} className="btn btn-dark rounded-pill px-3">
+                Salir
+              </button>
+            </>
+          )}
+
+          {/* Fallback */}
+          {user && !isCandidate && !isRRHH && !isAdmin && (
             <>
               <span className="text-muted small">
                 {user?.email || "Usuario"} ({role || "SIN ROL"})

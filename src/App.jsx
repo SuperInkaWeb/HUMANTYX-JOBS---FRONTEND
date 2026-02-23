@@ -21,6 +21,10 @@ import AdminJobApplications from "./pages/admin/AdminJobApplications";
 import AdminCandidatesList from "./pages/admin/AdminCandidatesList";
 
 
+import AdminInviteUser from "./pages/admin/AdminInviteUser";
+import SetPassword from "./pages/auth/SetPassword";
+
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -97,6 +101,19 @@ export default function App() {
               </RoleProtectedRoute>
             }
           />
+
+
+          <Route path="/set-password" element={<SetPassword />} />
+
+          <Route
+            path="/rrhh/invitar"
+            element={
+              <RoleProtectedRoute allow={["ADMIN"]}>
+                <AdminInviteUser />
+              </RoleProtectedRoute>
+            }
+          />
+
 
 
           <Route path="*" element={<Navigate to="/" replace />} />
