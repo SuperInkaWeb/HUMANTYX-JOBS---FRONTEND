@@ -14,8 +14,19 @@ export default function Login() {
     e.preventDefault();
     try {
       setError("");
-      await login(email, password);
-      nav("/empleos");
+
+      const u = await login(email, password);
+
+      // Si por alguna razón no devuelve user, manda a empleos (fallback)
+      if (!u) return nav("/empleos");
+
+      // Onboarding: candidato sin perfil completo -> /mi-perfil (o la ruta que uses)
+      if (u.role === "CANDIDATE" && u.profile_complete === false) {
+        return nav("/mi-perfil");
+      }
+
+      // Admin/RRHH o candidato con perfil completo
+      return nav("/empleos");
     } catch (e2) {
       setError(e2.message);
     }
@@ -29,12 +40,23 @@ export default function Login() {
 
       <form onSubmit={onSubmit} className="card card-body">
         <label className="form-label">Email</label>
-        <input className="form-control mb-3" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          className="form-control mb-3"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <label className="form-label">Contraseña</label>
-        <input type="password" className="form-control mb-3" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input
+          type="password"
+          className="form-control mb-3"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-        <button className="btn btn-dark rounded-pill" type="submit">Entrar</button>
+        <button className="btn btn-dark rounded-pill" type="submit">
+          Entrar
+        </button>
 
         <div className="mt-3 small">
           ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>

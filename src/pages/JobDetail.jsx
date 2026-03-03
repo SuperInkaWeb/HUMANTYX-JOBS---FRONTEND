@@ -33,12 +33,8 @@ export default function JobDetail() {
     })();
   }, [id]);
 
-  function isProfileComplete(u) {
-    return !!(u?.first_name && u?.last_name && u?.phone && u?.dni);
-  }
-
   async function handleApply() {
-    // 1) No logueado -> login (y guarda "from" para volver)
+    // 1) No logueado -> login (y guardamos "from" para volver)
     if (!user || !localStorage.getItem("token")) {
       nav("/login", { state: { from: location.pathname } });
       return;
@@ -49,17 +45,20 @@ export default function JobDetail() {
       setError("");
       setPosting(true);
 
-      // 2) Validación UX: pedir /auth/me y comprobar perfil completo
+      // 2) Pedir /auth/me y usar profile_complete del backend (fuente de verdad)
       const me = await apiFetch("/auth/me");
       const u = me?.user;
 
-      if (!isProfileComplete(u)) {
+      const role = (u?.role || "").trim().toUpperCase();
+      const incomplete = role === "CANDIDATE" && u?.profile_complete === false;
+
+      if (incomplete) {
         nav("/mi-perfil", {
           state: {
             from: location.pathname,
             reason: "complete_profile",
             message:
-              "Completa tu perfil (nombres, apellidos, teléfono y DNI) antes de postular.",
+              "Completa tu perfil (datos obligatorios) antes de postular.",
           },
         });
         return;
@@ -73,7 +72,18 @@ export default function JobDetail() {
 
       setMsg("✅ Postulación enviada correctamente.");
     } catch (e) {
-   
+      // Si backend responde PROFILE_INCOMPLETE, igual lo llevamos al perfil
+      if (e?.code === "PROFILE_INCOMPLETE") {
+        nav("/mi-perfil", {
+          state: {
+            from: location.pathname,
+            reason: "complete_profile",
+            message: e.message || "Completa tu perfil antes de postular.",
+          },
+        });
+        return;
+      }
+
       setMsg(`${e.message}`);
     } finally {
       setPosting(false);

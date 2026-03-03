@@ -16,6 +16,9 @@ export default function Navbar() {
   const isRRHH = role === "RRHH";
   const isCandidate = role === "CANDIDATE";
 
+  const profileIncomplete =
+    isCandidate && user?.profile_complete === false;
+
   return (
     <nav className="navbar navbar-expand-lg border-bottom bg-white">
       <div className="container">
@@ -33,10 +36,16 @@ export default function Navbar() {
           {/* NO logueado */}
           {!user && (
             <>
-              <Link to="/login" className="btn btn-outline-dark rounded-pill px-3">
+              <Link
+                to="/login"
+                className="btn btn-outline-dark rounded-pill px-3"
+              >
                 Ingresar
               </Link>
-              <Link to="/register" className="btn btn-dark rounded-pill px-3">
+              <Link
+                to="/register"
+                className="btn btn-dark rounded-pill px-3"
+              >
                 Crear cuenta
               </Link>
             </>
@@ -45,15 +54,36 @@ export default function Navbar() {
           {/* CANDIDATE */}
           {user && isCandidate && (
             <>
-              <Link to="/mi-perfil" className="btn btn-outline-dark rounded-pill px-3">
+              <Link
+                to="/mi-perfil"
+                className="btn btn-outline-dark rounded-pill px-3"
+              >
                 Mi perfil
               </Link>
 
-              <Link to="/mis-postulaciones" className="btn btn-outline-dark rounded-pill px-3">
-                Mis postulaciones
-              </Link>
+              {/* Deshabilitado si perfil incompleto */}
+              {profileIncomplete ? (
+                <button
+                  className="btn btn-outline-secondary rounded-pill px-3"
+                  disabled
+                  title="Completa tu perfil para acceder a tus postulaciones"
+                  style={{ cursor: "not-allowed" }}
+                >
+                  Mis postulaciones
+                </button>
+              ) : (
+                <Link
+                  to="/mis-postulaciones"
+                  className="btn btn-outline-dark rounded-pill px-3"
+                >
+                  Mis postulaciones
+                </Link>
+              )}
 
-              <button onClick={handleLogout} className="btn btn-dark rounded-pill px-3">
+              <button
+                onClick={handleLogout}
+                className="btn btn-dark rounded-pill px-3"
+              >
                 Salir
               </button>
             </>
@@ -76,7 +106,10 @@ export default function Navbar() {
                 Candidatos
               </Link>
 
-              <button onClick={handleLogout} className="btn btn-dark rounded-pill px-3">
+              <button
+                onClick={handleLogout}
+                className="btn btn-dark rounded-pill px-3"
+              >
                 Salir
               </button>
             </>
@@ -99,7 +132,6 @@ export default function Navbar() {
                 Candidatos
               </Link>
 
-              {/* 🔥 NUEVO LINK SOLO ADMIN */}
               <Link
                 to="/rrhh/invitar"
                 className="btn btn-outline-success rounded-pill px-3"
@@ -107,7 +139,10 @@ export default function Navbar() {
                 Invitar usuario
               </Link>
 
-              <button onClick={handleLogout} className="btn btn-dark rounded-pill px-3">
+              <button
+                onClick={handleLogout}
+                className="btn btn-dark rounded-pill px-3"
+              >
                 Salir
               </button>
             </>
@@ -119,7 +154,10 @@ export default function Navbar() {
               <span className="text-muted small">
                 {user?.email || "Usuario"} ({role || "SIN ROL"})
               </span>
-              <button onClick={handleLogout} className="btn btn-dark rounded-pill px-3">
+              <button
+                onClick={handleLogout}
+                className="btn btn-dark rounded-pill px-3"
+              >
                 Salir
               </button>
             </>

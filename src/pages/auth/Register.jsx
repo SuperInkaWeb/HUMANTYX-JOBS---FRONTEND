@@ -14,8 +14,17 @@ export default function Register() {
     e.preventDefault();
     try {
       setError("");
-      await register(email, password);
-      nav("/empleos");
+
+      const u = await register(email, password);
+
+      if (!u) return nav("/empleos");
+
+      // Nuevo usuario candidato: casi siempre profile_complete=false -> onboarding
+      if (u.role === "CANDIDATE" && u.profile_complete === false) {
+        return nav("/mi-perfil");
+      }
+
+      return nav("/empleos");
     } catch (e2) {
       setError(e2.message);
     }
@@ -29,12 +38,23 @@ export default function Register() {
 
       <form onSubmit={onSubmit} className="card card-body">
         <label className="form-label">Email</label>
-        <input className="form-control mb-3" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          className="form-control mb-3"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <label className="form-label">Contraseña</label>
-        <input type="password" className="form-control mb-3" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input
+          type="password"
+          className="form-control mb-3"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-        <button className="btn btn-dark rounded-pill" type="submit">Crear</button>
+        <button className="btn btn-dark rounded-pill" type="submit">
+          Crear
+        </button>
 
         <div className="mt-3 small">
           ¿Ya tienes cuenta? <Link to="/login">Iniciar sesión</Link>
