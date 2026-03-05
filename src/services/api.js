@@ -112,3 +112,17 @@ export async function downloadCv() {
 
   window.URL.revokeObjectURL(url);
 }
+
+export async function validateInvite(token, email) {
+  const res = await fetch(
+    `${API_URL}/auth/invites/validate?token=${token}&email=${encodeURIComponent(email)}`
+  );
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw data;
+  }
+
+  return data;
+}

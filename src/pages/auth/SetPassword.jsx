@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiFetch } from "../../services/api";
+import { apiFetch, validateInvite } from "../../services/api";
 
 function useQuery() {
   const { search } = useLocation();
@@ -18,8 +18,33 @@ export default function SetPassword() {
   const [confirm, setConfirm] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [loadingInvite, setLoadingInvite] = useState(true);
+
+  const [inviteError, setInviteError] = useState(null);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+
+  // 🔎 Validar invitación al abrir la página
+  useEffect(() => {
+    async function checkInvite() {
+      if (!token || !email) {
+        setInviteError("INVITE_INVALID");
+        setLoadingInvite(false);
+        return;
+      }
+
+      try {
+        await validateInvite(token, email);
+        setInviteError(null);
+      } catch (err) {
+        setInviteError(err.error || "INVITE_INVALID");
+      } finally {
+        setLoadingInvite(false);
+      }
+    }
+
+    checkInvite();
+  }, [token, email]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -39,9 +64,10 @@ export default function SetPassword() {
       });
 
       setMsg("✅ Cuenta activada. Ya puedes iniciar sesión.");
-      setTimeout(() => nav("/login"), 900);
+      setTimeout(() => nav("/login"), 1000);
+
     } catch (e2) {
-      setError(e2.message);
+      setError(e2.message || "Error activando cuenta");
     } finally {
       setLoading(false);
     }
@@ -54,44 +80,72 @@ export default function SetPassword() {
         <div className="text-muted">Define tu contraseña para acceder al panel.</div>
       </div>
 
+      {/* ⏳ Validando invitación */}
+      {loadingInvite && (
+        <div className="alert alert-info">Validando invitación...</div>
+      )}
+
+      {/* ❌ Invitación inválida/usada/expirada */}
+      {!loadingInvite && inviteError && (
+        <div className="alert alert-danger">
+          {inviteError === "INVITE_USED" && "Esta invitación ya fue usada."}
+          {inviteError === "INVITE_EXPIRED" && "Esta invitación ha expirado."}
+          {inviteError === "INVITE_INVALID" && "La invitación no es válida."}
+
+          <div className="mt-3">
+            <button
+              className="btn btn-dark rounded-pill px-4"
+              onClick={() => nav("/login")}
+            >
+              Ir a iniciar sesión
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && <div className="alert alert-danger">{error}</div>}
       {msg && <div className="alert alert-success">{msg}</div>}
 
-      <form onSubmit={onSubmit} className="card">
-        <div className="card-body">
-          <div className="mb-3">
-            <label className="form-label">Email</label>
-            <input className="form-control" value={email} disabled />
-          </div>
+      {/* 📝 Formulario */}
+      {!inviteError && !loadingInvite && (
+        <form onSubmit={onSubmit} className="card">
+          <div className="card-body">
 
-          <div className="mb-3">
-            <label className="form-label">Contraseña</label>
-            <input
-              className="form-control"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
-              disabled={loading}
-            />
-          </div>
+            <div className="mb-3">
+              <label className="form-label">Email</label>
+              <input className="form-control" value={email} disabled />
+            </div>
 
-          <div className="mb-3">
-            <label className="form-label">Confirmar contraseña</label>
-            <input
-              className="form-control"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              disabled={loading}
-            />
-          </div>
+            <div className="mb-3">
+              <label className="form-label">Contraseña</label>
+              <input
+                className="form-control"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                disabled={loading}
+              />
+            </div>
 
-          <button className="btn btn-dark rounded-pill px-4" disabled={loading}>
-            {loading ? "Activando..." : "Activar"}
-          </button>
-        </div>
-      </form>
+            <div className="mb-3">
+              <label className="form-label">Confirmar contraseña</label>
+              <input
+                className="form-control"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <button className="btn btn-dark rounded-pill px-4" disabled={loading}>
+              {loading ? "Activando..." : "Activar"}
+            </button>
+
+          </div>
+        </form>
+      )}
     </div>
   );
 }
