@@ -1,138 +1,217 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { apiFetch } from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import "./job-detail.css";
+
+function formatDate(dateString) {
+  if (!dateString) return "—";
+
+  const date = new Date(dateString);
+
+  return new Intl.DateTimeFormat("es-PE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function mapApplicationStatus(status) {
+  const map = {
+    APPLIED: "Solicitud enviada",
+    IN_REVIEW: "En revisión",
+    INTERVIEW: "Entrevista",
+    REJECTED: "Postulación rechazada",
+    HIRED: "Contratado",
+  };
+
+  return map[status] || status || "Sin estado";
+}
+
+function mapJobStatus(status) {
+  const map = {
+    PUBLISHED: "Vacante activa",
+    CLOSED: "Vacante cerrada",
+    DRAFT: "Borrador",
+  };
+
+  return map[status] || status || "No especificado";
+}
 
 export default function JobDetail() {
   const { id } = useParams();
-  const nav = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const application = location.state?.application || null;
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [posting, setPosting] = useState(false);
-  const [msg, setMsg] = useState("");
-
   useEffect(() => {
-    (async () => {
+    async function loadJob() {
       try {
-        setError("");
         setLoading(true);
+        setError("");
 
         const data = await apiFetch(`/jobs/${id}`);
-        const raw = data?.job ?? data;
-        setJob(raw);
-      } catch (e) {
-        setError(e.message);
+        setJob(data.job || null);
+      } catch (err) {
+        setError(err.message || "Error cargando el empleo");
       } finally {
         setLoading(false);
       }
-    })();
+    }
+
+    loadJob();
   }, [id]);
 
-  async function handleApply() {
-    // 1) No logueado -> login (y guardamos "from" para volver)
-    if (!user || !localStorage.getItem("token")) {
-      nav("/login", { state: { from: location.pathname } });
-      return;
-    }
+  if (loading) {
+    return (
+      <section className="jobdetail-page py-4 py-lg-5">
+        <div className="jobdetail-shell">
+          <div className="jobdetail-card">Cargando empleo...</div>
+        </div>
+      </section>
+    );
+  }
 
-    try {
-      setMsg("");
-      setError("");
-      setPosting(true);
+  if (error) {
+    return (
+      <section className="jobdetail-page py-4 py-lg-5">
+        <div className="jobdetail-shell">
+          <div className="jobdetail-card">
+            <p className="text-danger mb-0">{error}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-      // 2) Pedir /auth/me y usar profile_complete del backend (fuente de verdad)
-      const me = await apiFetch("/auth/me");
-      const u = me?.user;
-
-      const role = (u?.role || "").trim().toUpperCase();
-      const incomplete = role === "CANDIDATE" && u?.profile_complete === false;
-
-      if (incomplete) {
-        nav("/mi-perfil", {
-          state: {
-            from: location.pathname,
-            reason: "complete_profile",
-            message:
-              "Completa tu perfil (datos obligatorios) antes de postular.",
-          },
-        });
-        return;
-      }
-
-      // 3) Postular (backend espera { job_id })
-      await apiFetch("/candidate/applications", {
-        method: "POST",
-        body: JSON.stringify({ job_id: id }),
-      });
-
-      setMsg("✅ Postulación enviada correctamente.");
-    } catch (e) {
-      // Si backend responde PROFILE_INCOMPLETE, igual lo llevamos al perfil
-      if (e?.code === "PROFILE_INCOMPLETE") {
-        nav("/mi-perfil", {
-          state: {
-            from: location.pathname,
-            reason: "complete_profile",
-            message: e.message || "Completa tu perfil antes de postular.",
-          },
-        });
-        return;
-      }
-
-      setMsg(`${e.message}`);
-    } finally {
-      setPosting(false);
-    }
+  if (!job) {
+    return (
+      <section className="jobdetail-page py-4 py-lg-5">
+        <div className="jobdetail-shell">
+          <div className="jobdetail-card">
+            <p className="mb-0">No se encontró la vacante.</p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
-    <div className="container py-4" style={{ maxWidth: 980 }}>
-      {loading && <div>Cargando...</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
+    <section className="jobdetail-page py-4 py-lg-5">
+      <div className="jobdetail-shell">
+        <Link to="/mis-postulaciones" className="jobdetail-back">
+          <i className="bi bi-arrow-left"></i>
+          Volver a mis postulaciones
+        </Link>
 
-      {job && (
-        <>
-          <div className="d-flex align-items-start justify-content-between flex-wrap gap-2">
-            <div>
-              <h2 className="fw-bold mb-1">{job.title ?? "Sin título"}</h2>
-              <div className="text-muted">
-                {job.location || "—"}{" "}
-                {job.salary_range ? `• ${job.salary_range}` : ""}
+        <article className="jobdetail-card">
+          <div className="jobdetail-hero-top">
+            <div className="jobdetail-brand">
+              
+
+              <div className="jobdetail-brand-info">
+                
+
+                <h1 className="jobdetail-title">
+                  {job.title || "Sin título"}
+                </h1>
+
+                <div className="jobdetail-status-row">
+                  <span className="jobdetail-job-status">
+                    {mapJobStatus(job.status)}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="d-flex gap-2">
-              <Link className="btn btn-outline-secondary rounded-pill" to="/empleos">
-                Volver
-              </Link>
-
-              <button
-                className="btn btn-dark rounded-pill px-4"
-                onClick={handleApply}
-                disabled={posting}
-              >
-                {posting ? "Postulando..." : "Postular"}
-              </button>
-            </div>
+            {application && (
+              <div className="jobdetail-hero-right">
+                <span className="jobdetail-application-pill">
+                  {mapApplicationStatus(application.status)}
+                </span>
+              </div>
+            )}
           </div>
 
-          {msg && <div className="alert alert-info mt-3">{msg}</div>}
+          <div className="jobdetail-divider"></div>
 
-          <div className="card mt-3">
-            <div className="card-body">
-              <h5 className="fw-bold">Descripción</h5>
-              <p className="mb-0">
-                {job.description ?? "Aún no hay descripción para esta vacante."}
-              </p>
-            </div>
+          <div className="jobdetail-section-head">
+            <h2 className="jobdetail-section-title">Detalles del empleo</h2>
           </div>
-        </>
-      )}
-    </div>
+
+          <div className="jobdetail-info-grid">
+            <div className="jobdetail-info-item">
+              <div className="jobdetail-info-icon">
+                <i className="bi bi-geo-alt"></i>
+              </div>
+              <div>
+                <span className="jobdetail-info-label">Ubicación</span>
+                <strong className="jobdetail-info-value">
+                  {job.location || "No especificado"}
+                </strong>
+              </div>
+            </div>
+
+            <div className="jobdetail-info-item">
+              <div className="jobdetail-info-icon">
+                <i className="bi bi-briefcase"></i>
+              </div>
+              <div>
+                <span className="jobdetail-info-label">Tipo de empleo</span>
+                <strong className="jobdetail-info-value">
+                  {job.employment_type || "No especificado"}
+                </strong>
+              </div>
+            </div>
+
+            <div className="jobdetail-info-item">
+              <div className="jobdetail-info-icon">
+                <i className="bi bi-cash-stack"></i>
+              </div>
+              <div>
+                <span className="jobdetail-info-label">Salario</span>
+                <strong className="jobdetail-info-value">
+                  {job.salary_range || "No especificado"}
+                </strong>
+              </div>
+            </div>
+
+            {application?.created_at && (
+              <div className="jobdetail-info-item">
+                <div className="jobdetail-info-icon">
+                  <i className="bi bi-send-check"></i>
+                </div>
+                <div>
+                  <span className="jobdetail-info-label">Fecha de postulación</span>
+                  <strong className="jobdetail-info-value">
+                    {formatDate(application.created_at)}
+                  </strong>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+
+        <article className="jobdetail-card">
+          <div className="jobdetail-section-head">
+            <h2 className="jobdetail-section-title">Acerca del empleo</h2>
+          </div>
+
+          <div className="jobdetail-divider"></div>
+
+          <div className="jobdetail-description">
+            {job.description ? (
+              job.description.split("\n").map((line, index) => (
+                <p key={index}>{line.trim() || "\u00A0"}</p>
+              ))
+            ) : (
+              <p>No hay descripción disponible.</p>
+            )}
+          </div>
+        </article>
+      </div>
+    </section>
   );
 }

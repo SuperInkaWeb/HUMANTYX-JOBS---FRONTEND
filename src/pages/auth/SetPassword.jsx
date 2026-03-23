@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiFetch, validateInvite } from "../../services/api";
+import "./auth.css";
 
 function useQuery() {
   const { search } = useLocation();
@@ -24,7 +25,6 @@ export default function SetPassword() {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
 
-  // 🔎 Validar invitación al abrir la página
   useEffect(() => {
     async function checkInvite() {
       if (!token || !email) {
@@ -51,9 +51,20 @@ export default function SetPassword() {
     setError("");
     setMsg("");
 
-    if (!token || !email) return setError("Link inválido. Falta token o email.");
-    if (password.length < 8) return setError("La contraseña debe tener mínimo 8 caracteres.");
-    if (password !== confirm) return setError("Las contraseñas no coinciden.");
+    if (!token || !email) {
+      setError("Link inválido. Falta token o email.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("La contraseña debe tener mínimo 8 caracteres.");
+      return;
+    }
+
+    if (password !== confirm) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -63,9 +74,8 @@ export default function SetPassword() {
         body: JSON.stringify({ token, email, password }),
       });
 
-      setMsg("✅ Cuenta activada. Ya puedes iniciar sesión.");
+      setMsg("Cuenta activada. Ya puedes iniciar sesión.");
       setTimeout(() => nav("/login"), 1000);
-
     } catch (e2) {
       setError(e2.message || "Error activando cuenta");
     } finally {
@@ -73,79 +83,112 @@ export default function SetPassword() {
     }
   }
 
+  const inviteErrorText =
+    inviteError === "INVITE_USED"
+      ? "Esta invitación ya fue usada."
+      : inviteError === "INVITE_EXPIRED"
+      ? "Esta invitación ha expirado."
+      : "La invitación no es válida.";
+
   return (
-    <div className="container py-5" style={{ maxWidth: 520 }}>
-      <div className="mb-4">
-        <h2 className="fw-bold mb-1">Activar cuenta</h2>
-        <div className="text-muted">Define tu contraseña para acceder al panel.</div>
-      </div>
+    <section className="hx-auth-page">
+      <div className="container">
+        <div className="hx-auth-shell">
+          <div className="hx-auth-card">
+            <div className="hx-auth-card__header">
+              <h1 className="hx-auth-title">Activar cuenta</h1>
+            </div>
 
-      {/* ⏳ Validando invitación */}
-      {loadingInvite && (
-        <div className="alert alert-info">Validando invitación...</div>
-      )}
+            {loadingInvite && (
+              <div className="alert alert-info hx-auth-alert" role="alert">
+                Validando invitación...
+              </div>
+            )}
 
-      {/* ❌ Invitación inválida/usada/expirada */}
-      {!loadingInvite && inviteError && (
-        <div className="alert alert-danger">
-          {inviteError === "INVITE_USED" && "Esta invitación ya fue usada."}
-          {inviteError === "INVITE_EXPIRED" && "Esta invitación ha expirado."}
-          {inviteError === "INVITE_INVALID" && "La invitación no es válida."}
+            {!loadingInvite && inviteError && (
+              <div className="alert alert-danger hx-auth-alert" role="alert">
+                {inviteErrorText}
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    className="hx-auth-submit"
+                    onClick={() => nav("/login")}
+                  >
+                    Ir a iniciar sesión
+                  </button>
+                </div>
+              </div>
+            )}
 
-          <div className="mt-3">
-            <button
-              className="btn btn-dark rounded-pill px-4"
-              onClick={() => nav("/login")}
-            >
-              Ir a iniciar sesión
-            </button>
+            {error && (
+              <div className="alert alert-danger hx-auth-alert" role="alert">
+                {error}
+              </div>
+            )}
+
+            {msg && (
+              <div className="alert alert-success hx-auth-alert" role="alert">
+                {msg}
+              </div>
+            )}
+
+            {!inviteError && !loadingInvite && (
+              <form onSubmit={onSubmit} className="hx-auth-form">
+                <div className="hx-auth-field">
+                  <label className="hx-auth-label">Email</label>
+                  <div className="hx-auth-inputwrap">
+                    <i className="bi bi-envelope hx-auth-icon"></i>
+                    <input
+                      type="email"
+                      className="hx-auth-input"
+                      value={email}
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div className="hx-auth-field">
+                  <label className="hx-auth-label">Contraseña</label>
+                  <div className="hx-auth-inputwrap">
+                    <i className="bi bi-lock hx-auth-icon"></i>
+                    <input
+                      type="password"
+                      className="hx-auth-input"
+                      placeholder="Mínimo 8 caracteres"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div className="hx-auth-field">
+                  <label className="hx-auth-label">Confirmar contraseña</label>
+                  <div className="hx-auth-inputwrap">
+                    <i className="bi bi-shield-lock hx-auth-icon"></i>
+                    <input
+                      type="password"
+                      className="hx-auth-input"
+                      placeholder="Repite tu contraseña"
+                      value={confirm}
+                      onChange={(e) => setConfirm(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  className="hx-auth-submit"
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading ? "Activando..." : "Activar cuenta"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
-      )}
-
-      {error && <div className="alert alert-danger">{error}</div>}
-      {msg && <div className="alert alert-success">{msg}</div>}
-
-      {/* 📝 Formulario */}
-      {!inviteError && !loadingInvite && (
-        <form onSubmit={onSubmit} className="card">
-          <div className="card-body">
-
-            <div className="mb-3">
-              <label className="form-label">Email</label>
-              <input className="form-control" value={email} disabled />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Contraseña</label>
-              <input
-                className="form-control"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 8 caracteres"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Confirmar contraseña</label>
-              <input
-                className="form-control"
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <button className="btn btn-dark rounded-pill px-4" disabled={loading}>
-              {loading ? "Activando..." : "Activar"}
-            </button>
-
-          </div>
-        </form>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }

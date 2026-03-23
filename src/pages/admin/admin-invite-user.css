@@ -1,0 +1,242 @@
+.invite-page {
+  width: 100%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 30px;
+}
+
+/* HEADER */
+
+.invite-page__header {
+  margin-bottom: 20px;
+}
+
+.invite-page__header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.invite-page__header p {
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* CARD */
+
+.invite-card {
+  background: white;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+/* CARD HEADER */
+
+.invite-card__top {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 24px 28px;
+}
+
+.invite-card__icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+
+  background: #eaf3f0;
+  color: #7fa9a1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+.invite-card__heading h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.invite-card__heading p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* DIVIDER */
+
+.invite-card__divider {
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* BODY */
+
+.invite-card__body {
+  padding: 28px;
+}
+
+/* GRID */
+
+.invite-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* FIELD */
+
+.invite-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.invite-field label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.invite-field input,
+.invite-field select {
+  height: 48px;
+  padding: 0 14px;
+
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+
+  font-size: 15px;
+}
+
+.invite-field input:focus,
+.invite-field select:focus {
+  outline: none;
+  border-color: #8db8ae;
+}
+
+.invite-field small {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* INFO BOX */
+
+.invite-info-box {
+  margin-top: 24px;
+
+  display: flex;
+  gap: 12px;
+
+  padding: 16px;
+  border-radius: 12px;
+
+  background: #f1f5f4;
+  border: 1px solid #e2e8f0;
+}
+
+.invite-info-box__icon {
+  width: 24px;
+  height: 24px;
+
+  border-radius: 50%;
+  background: #8db8ae;
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.invite-info-box p {
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+}
+
+/* ACTIONS */
+
+.invite-actions {
+  margin-top: 28px;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 20px;
+}
+
+.invite-actions__cancel {
+  border: none;
+  background: transparent;
+
+  font-weight: 600;
+  color: #64748b;
+
+  cursor: pointer;
+}
+
+.invite-actions__cancel:hover {
+  color: #334155;
+}
+
+/* BUTTON */
+
+.invite-actions__submit {
+  border: none;
+  background: #8db8ae;
+  color: #0f172a;
+
+  min-width: 210px;
+  height: 52px;
+
+  padding: 0 24px;
+  border-radius: 12px;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  transition: all 0.2s ease;
+}
+
+.invite-actions__submit:hover {
+  background: #7fada2;
+  transform: translateY(-1px);
+}
+
+/* ICON BUTTON */
+
+.invite-btn-icon {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .invite-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invite-actions__submit {
+    width: 100%;
+  }
+}

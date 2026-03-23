@@ -1,69 +1,105 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { apiFetch } from "../services/api";
+import useJobsSearchParams from "../hooks/useJobsSearchParams";
+import useJobsList from "../hooks/useJobsList";
+import useJobDetail from "../hooks/useJobDetail";
+import useJobApplication from "../hooks/useJobApplication";
+
+import JobsSearchBar from "../components/jobs/JobsSearchBar";
+import JobsResultsBar from "../components/jobs/JobsResultsBar";
+import JobsListPanel from "../components/jobs/JobsListPanel";
+import JobDetailPanel from "../components/jobs/JobDetailPanel";
+
+import "./jobs.css";
 
 export default function JobsList() {
-  const [jobs, setJobs] = useState([]);
-  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const {
+    queryKeyword,
+    queryLocation,
+    keyword,
+    setKeyword,
+    location,
+    setLocation,
+    sortBy,
+    openSort,
+    onSearch,
+    changeSort,
+    toggleSortDropdown,
+  } = useJobsSearchParams();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setError("");
-        setLoading(true);
+  const {
+    applying,
+    applyError,
+    applySuccess,
+    handleApply,
+    resetApplyMessages,
+  } = useJobApplication();
 
-        const data = await apiFetch("/jobs");
-       
+  const {
+    jobs,
+    loadingList,
+    error,
+    selectedId,
+    setSelectedId,
+  } = useJobsList({
+    queryKeyword,
+    queryLocation,
+    querySort: sortBy,
+    onResetMessages: resetApplyMessages,
+  });
 
-        setJobs(Array.isArray(data?.jobs) ? data.jobs : []);
-        setMeta({
-          page: data?.page ?? 1,
-          limit: data?.limit ?? 10,
-          total: data?.total ?? 0,
-        });
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const {
+    selectedJob,
+    loadingDetail,
+  } = useJobDetail({
+    selectedId,
+    onResetMessages: resetApplyMessages,
+  });
 
   return (
-    <div className="container py-4">
-      <div className="d-flex align-items-end justify-content-between flex-wrap gap-2 mb-3">
-        <div>
-          <h2 className="fw-bold mb-1">Empleos</h2>
-          <div className="text-muted small">
-            {meta.total} resultado(s) • Página {meta.page}
+    <div className="jobs-page">
+      <div className="jobs-shell">
+        <JobsSearchBar
+          keyword={keyword}
+          location={location}
+          loadingList={loadingList}
+          onKeywordChange={setKeyword}
+          onLocationChange={setLocation}
+          onSubmit={onSearch}
+        />
+
+        <JobsResultsBar
+          loadingList={loadingList}
+          jobsCount={jobs.length}
+          queryKeyword={queryKeyword}
+          queryLocation={queryLocation}
+          sortBy={sortBy}
+          openSort={openSort}
+          onToggleSort={toggleSortDropdown}
+          onChangeSort={changeSort}
+        />
+
+        <div className="jobs-board">
+          <div className="jobs-board__left">
+            <JobsListPanel
+              error={error}
+              loadingList={loadingList}
+              jobs={jobs}
+              selectedId={selectedId}
+              onSelectJob={setSelectedId}
+            />
+          </div>
+
+          <div className="jobs-board__right">
+            <JobDetailPanel
+              selectedId={selectedId}
+              loadingDetail={loadingDetail}
+              selectedJob={selectedJob}
+              applying={applying}
+              applyError={applyError}
+              applySuccess={applySuccess}
+              onApply={() => handleApply(selectedJob)}
+            />
           </div>
         </div>
-      </div>
-
-      {loading && <div>Cargando...</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      <div className="row g-3">
-        {jobs.map((j) => (
-          <div className="col-md-6" key={j.id}>
-            <div className="card h-100">
-              <div className="card-body">
-                <h5 className="card-title">{j.title}</h5>
-                <p className="card-text text-muted mb-2">{j.location || "—"}</p>
-
-                <Link className="btn btn-outline-dark rounded-pill" to={`/empleos/${j.id}`}>
-                  Ver oferta
-                </Link>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {!loading && !error && jobs.length === 0 && (
-          <div className="text-muted">No hay vacantes publicadas.</div>
-        )}
       </div>
     </div>
   );

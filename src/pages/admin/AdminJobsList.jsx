@@ -1,184 +1,35 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { createPortal } from "react-dom";
 import { apiFetch } from "../../services/api";
+import AdminJobForm from "./AdminJobForm";
+import "./admin-jobs-list.css";
 
-/**
- * Estados del enum en tu BD: {DRAFT, PUBLISHED, CLOSED}
- */
 const STATUS_META = {
-  PUBLISHED: {
-    value: "PUBLISHED",
-    label: "Publicado",
-    pillBg: "#2f6f44",
-    pillText: "#fff",
-  },
-  CLOSED: {
-    value: "CLOSED",
-    label: "Cerrado",
-    pillBg: "#b54545",
-    pillText: "#fff",
-  },
-  DRAFT: {
-    value: "DRAFT",
-    label: "Borrador",
-    pillBg: "#e0b737",
-    pillText: "#1a1a1a",
-  },
+  PUBLISHED: { label: "Publicado", cls: "is-published" },
+  CLOSED: { label: "Cerrado", cls: "is-closed" },
+  DRAFT: { label: "Borrador", cls: "is-draft" },
 };
 
-const ORDER = ["PUBLISHED", "CLOSED", "DRAFT"];
+const FILTERS = [
+  { key: "ALL", label: "Todas" },
+  { key: "PUBLISHED", label: "Publicadas" },
+  { key: "CLOSED", label: "Cerradas" },
+  { key: "DRAFT", label: "Borradores" },
+];
 
-/**
- * Dropdown
- */
-function StatusDropdownPortal({
-  open,
-  anchorEl,
-  currentStatus,
-  disabled,
-  onSelect,
-  onClose,
-}) {
-  const menuRef = useRef(null);
-  const [pos, setPos] = useState({ top: 0, left: 0, minWidth: 0 });
+function formatEmploymentType(value) {
+  if (!value) return "—";
 
-  function computePosition() {
-    if (!anchorEl) return;
+  const map = {
+    internship: "Internship",
+    part_time: "Part-time",
+    "part-time": "Part-time",
+    full_time: "Full-time",
+    "full-time": "Full-time",
+    contract: "Contrato",
+  };
 
-    const rect = anchorEl.getBoundingClientRect();
-    const gap = 8;
-
-    const minWidth = Math.max(200, rect.width);
-    let left = rect.left;
-    let top = rect.bottom + gap;
-
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    if (left + minWidth > vw - 8) left = Math.max(8, vw - minWidth - 8);
-    if (left < 8) left = 8;
-
-    const menuH = menuRef.current?.offsetHeight || 180;
-    const spaceBelow = vh - rect.bottom;
-    const spaceAbove = rect.top;
-
-    const shouldFlip = spaceBelow < menuH + gap && spaceAbove > menuH + gap;
-    if (shouldFlip) top = rect.top - menuH - gap;
-
-    setPos({ top: top + window.scrollY, left: left + window.scrollX, minWidth });
-  }
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    computePosition();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, anchorEl, currentStatus]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onDocClick = (e) => {
-      const target = e.target;
-      const clickedMenu = menuRef.current && menuRef.current.contains(target);
-      const clickedAnchor = anchorEl && anchorEl.contains(target);
-      if (!clickedMenu && !clickedAnchor) onClose();
-    };
-
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    const onAnyScroll = () => computePosition();
-    const onResize = () => computePosition();
-
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", onAnyScroll, true);
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onAnyScroll, true);
-      window.removeEventListener("resize", onResize);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, anchorEl]);
-
-  if (!open || !anchorEl) return null;
-
-  const menu = (
-    <div
-      ref={menuRef}
-      className="shadow-sm"
-      style={{
-        position: "absolute",
-        top: pos.top,
-        left: pos.left,
-        minWidth: pos.minWidth,
-        background: "white",
-        border: "1px solid rgba(0,0,0,0.12)",
-        borderRadius: 12,
-        padding: 8,
-        zIndex: 9999,
-      }}
-    >
-      <div className="px-2 pt-1 pb-2 small text-muted" style={{ userSelect: "none" }}>
-        Cambiar estado
-      </div>
-
-      <div style={{ display: "grid", gap: 6 }}>
-        {ORDER.map((k) => {
-          const item = STATUS_META[k];
-          const isActive = currentStatus === item.value;
-
-          return (
-            <button
-              key={item.value}
-              type="button"
-              className="btn btn-sm text-start"
-              disabled={disabled || isActive}
-              onClick={() => onSelect(item.value)}
-              style={{
-                borderRadius: 10,
-                border: "1px solid rgba(0,0,0,0.08)",
-                padding: "10px 10px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                opacity: isActive ? 0.55 : 1,
-                background: isActive ? "rgba(0,0,0,0.02)" : "white",
-                cursor: disabled ? "not-allowed" : isActive ? "default" : "pointer",
-              }}
-            >
-              <div className="d-flex align-items-center gap-2">
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 999,
-                    background: item.pillBg,
-                    display: "inline-block",
-                  }}
-                />
-                <span className="fw-semibold">{item.label}</span>
-              </div>
-
-              {isActive ? (
-                <span className="small text-muted">Actual</span>
-              ) : (
-                <span className="small text-muted">Cambiar</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  return createPortal(menu, document.body);
+  return map[value] || value;
 }
 
 export default function AdminJobsList() {
@@ -186,24 +37,22 @@ export default function AdminJobsList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const [activeFilter, setActiveFilter] = useState("ALL");
 
-  const [openId, setOpenId] = useState(null);
-  const [savingId, setSavingId] = useState(null);
-  const anchorsRef = useRef(new Map());
-
-  const openJob = useMemo(() => rows.find((r) => r.id === openId) || null, [rows, openId]);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [editingJobId, setEditingJobId] = useState(null);
 
   async function load() {
     try {
+      setLoading(true);
       setError("");
       setMsg("");
-      setLoading(true);
 
       const data = await apiFetch("/admin/jobs");
       const list = data?.jobs ?? data ?? [];
       setRows(Array.isArray(list) ? list : []);
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "No se pudieron cargar las vacantes");
     } finally {
       setLoading(false);
     }
@@ -213,171 +62,290 @@ export default function AdminJobsList() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (!showJobModal) return;
+
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [showJobModal]);
+
+  function openCreateModal() {
+    setEditingJobId(null);
+    setShowJobModal(true);
+  }
+
+  function openEditModal(jobId) {
+    setEditingJobId(jobId);
+    setShowJobModal(true);
+  }
+
+  function closeJobModal() {
+    setShowJobModal(false);
+    setEditingJobId(null);
+  }
+
   async function onDelete(id) {
     const ok = confirm("¿Seguro que deseas eliminar esta vacante?");
     if (!ok) return;
 
     try {
-      setMsg("");
       setError("");
+      setMsg("");
       await apiFetch(`/admin/jobs/${id}`, { method: "DELETE" });
       setMsg("✅ Vacante eliminada.");
       await load();
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "No se pudo eliminar la vacante");
     }
   }
 
   async function onChangeStatus(job, nextStatus) {
+    if (job.status === nextStatus) return;
+
     try {
-      setMsg("");
       setError("");
-      setSavingId(job.id);
+      setMsg("");
 
       await apiFetch(`/admin/jobs/${job.id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: nextStatus }),
       });
 
-      setMsg(`✅ Estado actualizado a ${STATUS_META[nextStatus]?.label ?? nextStatus}.`);
-      setOpenId(null);
+      setMsg(
+        `✅ Estado actualizado a ${STATUS_META[nextStatus]?.label || nextStatus}.`
+      );
       await load();
     } catch (e) {
-      setError(e.message);
-    } finally {
-      setSavingId(null);
+      setError(e.message || "No se pudo actualizar el estado");
     }
   }
 
-  function pillStyle(status) {
-    const m = STATUS_META[status] || STATUS_META.DRAFT;
+  const summary = useMemo(() => {
     return {
-      background: m.pillBg,
-      color: m.pillText,
-      border: "1px solid rgba(0,0,0,0.08)",
+      total: rows.length,
+      published: rows.filter((r) => r.status === "PUBLISHED").length,
+      closed: rows.filter((r) => r.status === "CLOSED").length,
+      draft: rows.filter((r) => r.status === "DRAFT").length,
     };
-  }
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    if (activeFilter === "ALL") return rows;
+    return rows.filter((r) => r.status === activeFilter);
+  }, [rows, activeFilter]);
 
   return (
-    <div className="container py-4">
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-        <div>
-          <h2 className="fw-bold mb-1">Vacantes (RRHH)</h2>
-          <div className="text-muted small">
-            Administra tus vacantes publicadas, cerradas y borradores.
+    <>
+      <section className="hx-admin-jobs-v2">
+        <div className="hx-admin-jobs-v2__header">
+          <div>
+            <h1 className="hx-admin-jobs-v2__title">Vacantes</h1>
+            <p className="hx-admin-jobs-v2__subtitle">
+              Administra tus vacantes publicadas, cerradas y borradores desde un
+              solo lugar.
+            </p>
           </div>
+
+          <button
+            type="button"
+            className="hx-admin-jobs-v2__new-btn border-0"
+            onClick={openCreateModal}
+          >
+            <i className="bi bi-plus-lg"></i>
+            <span>Nueva vacante</span>
+          </button>
         </div>
 
-        <Link to="/rrhh/vacantes/nueva" className="btn btn-dark rounded-pill px-4">
-          + Nueva vacante
-        </Link>
-      </div>
+        <div className="hx-admin-jobs-v2__stats">
+          <article className="hx-admin-jobs-v2__stat-card">
+            <span className="hx-admin-jobs-v2__stat-label">Total</span>
+            <strong className="hx-admin-jobs-v2__stat-value">{summary.total}</strong>
+          </article>
 
-      {loading && <div>Cargando...</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
-      {msg && <div className="alert alert-success">{msg}</div>}
+          <article className="hx-admin-jobs-v2__stat-card">
+            <span className="hx-admin-jobs-v2__stat-label">Publicadas</span>
+            <strong className="hx-admin-jobs-v2__stat-value is-accent">
+              {summary.published}
+            </strong>
+          </article>
 
-      {!loading && (
-        <div className="card">
-          <div className="table-responsive">
-            <table className="table mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th>Título</th>
-                  <th>Ubicación</th>
-                  <th>Tipo</th>
-                  <th>Salario</th>
-                  <th>Estado</th>
-                  <th className="text-end">Acciones</th>
-                </tr>
-              </thead>
+          <article className="hx-admin-jobs-v2__stat-card">
+            <span className="hx-admin-jobs-v2__stat-label">Cerradas</span>
+            <strong className="hx-admin-jobs-v2__stat-value">
+              {summary.closed}
+            </strong>
+          </article>
 
-              <tbody>
-                {rows.length === 0 ? (
+          <article className="hx-admin-jobs-v2__stat-card">
+            <span className="hx-admin-jobs-v2__stat-label">Borradores</span>
+            <strong className="hx-admin-jobs-v2__stat-value is-muted">
+              {summary.draft}
+            </strong>
+          </article>
+        </div>
+
+        <div className="hx-admin-jobs-v2__filters">
+          {FILTERS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`hx-admin-jobs-v2__filter ${
+                activeFilter === item.key ? "is-active" : ""
+              }`}
+              onClick={() => setActiveFilter(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {loading && (
+          <div className="hx-admin-jobs-v2__feedback">Cargando vacantes...</div>
+        )}
+        {error && (
+          <div className="alert alert-danger hx-admin-jobs-v2__alert">{error}</div>
+        )}
+        {msg && (
+          <div className="alert alert-success hx-admin-jobs-v2__alert">{msg}</div>
+        )}
+
+        {!loading && (
+          <div className="hx-admin-jobs-v2__table-card">
+            <div className="table-responsive">
+              <table className="table hx-admin-jobs-v2__table align-middle mb-0">
+                <thead>
                   <tr>
-                    <td colSpan={6} className="text-muted p-4">
-                      No hay vacantes aún.
-                    </td>
+                    <th>Cargo</th>
+                    <th>Ubicación</th>
+                    <th>Tipo</th>
+                    <th>Salario</th>
+                    <th>Estado</th>
+                    <th className="text-end">Acciones</th>
                   </tr>
-                ) : (
-                  rows.map((j) => {
-                    const meta = STATUS_META[j.status] || STATUS_META.DRAFT;
-                    const isSaving = savingId === j.id;
-                    const isOpen = openId === j.id;
+                </thead>
 
-                    return (
-                      <tr key={j.id}>
-                        <td className="fw-semibold">{j.title ?? "—"}</td>
-                        <td>{j.location ?? "—"}</td>
-                        <td>{j.employment_type ?? "—"}</td>
-                        <td>{j.salary_range ?? "—"}</td>
-
-                        <td>
+                <tbody>
+                  {filteredRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="hx-admin-jobs-v2__empty">
+                          <h3>No hay vacantes en esta categoría</h3>
+                          <p>Puedes crear una nueva vacante o cambiar el filtro.</p>
                           <button
-                            ref={(el) => {
-                              if (el) anchorsRef.current.set(j.id, el);
-                              else anchorsRef.current.delete(j.id);
-                            }}
                             type="button"
-                            className="btn btn-sm rounded-pill px-3 d-inline-flex align-items-center gap-2"
-                            onClick={() => setOpenId((prev) => (prev === j.id ? null : j.id))}
-                            disabled={isSaving}
-                            style={{
-                              ...pillStyle(j.status),
-                              fontWeight: 700,
-                              boxShadow: "0 1px 0 rgba(0,0,0,0.05)",
-                            }}
-                            title="Cambiar estado"
+                            className="hx-admin-jobs-v2__empty-btn border-0"
+                            onClick={openCreateModal}
                           >
-                            <span>{meta.label}</span>
-                            <span style={{ opacity: 0.9, fontSize: 12 }}>▼</span>
+                            Crear vacante
                           </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredRows.map((job) => {
+                      const status = STATUS_META[job.status] || STATUS_META.DRAFT;
 
-                          <StatusDropdownPortal
-                            open={isOpen}
-                            anchorEl={anchorsRef.current.get(j.id)}
-                            currentStatus={j.status}
-                            disabled={isSaving}
-                            onClose={() => setOpenId(null)}
-                            onSelect={(next) => onChangeStatus(j, next)}
-                          />
-                        </td>
+                      return (
+                        <tr key={job.id}>
+                          <td>
+                            <div className="hx-admin-jobs-v2__job-cell">
+                              <strong>{job.title || "Sin título"}</strong>
+                            </div>
+                          </td>
 
-                        <td className="text-end">
-                          <div className="d-flex justify-content-end gap-2 flex-wrap">
-                            {/* ✅ NUEVO: ir a postulantes */}
-                            <Link
-                              to={`/rrhh/vacantes/${j.id}/postulantes`}
-                              className="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                          <td>
+                            <div className="hx-admin-jobs-v2__location-cell">
+                              <i className="bi bi-geo-alt-fill"></i>
+                              <span>{job.location || "No especificado"}</span>
+                            </div>
+                          </td>
+
+                          <td>
+                            <span className="hx-admin-jobs-v2__type-pill">
+                              {formatEmploymentType(job.employment_type)}
+                            </span>
+                          </td>
+
+                          <td>{job.salary_range || "—"}</td>
+
+                          <td>
+                            <select
+                              className={`hx-admin-jobs-v2__status-select ${status.cls}`}
+                              value={job.status || "DRAFT"}
+                              onChange={(e) => onChangeStatus(job, e.target.value)}
                             >
-                              Postulantes
-                            </Link>
+                              <option value="PUBLISHED">Publicado</option>
+                              <option value="CLOSED">Cerrado</option>
+                              <option value="DRAFT">Borrador</option>
+                            </select>
+                          </td>
 
-                            <Link
-                              to={`/rrhh/vacantes/${j.id}/editar`}
-                              className="btn btn-outline-primary btn-sm rounded-pill px-3"
-                            >
-                              Editar
-                            </Link>
+                          <td className="text-end">
+                            <div className="hx-admin-jobs-v2__actions">
+                              <Link
+                                to={`/rrhh/vacantes/${job.id}/postulantes`}
+                                className="hx-admin-jobs-v2__action-btn is-postulantes"
+                                title="Ver postulantes"
+                              >
+                                <i className="bi bi-people"></i>
+                                <span>Postulantes</span>
+                              </Link>
 
-                            <button
-                              className="btn btn-outline-danger btn-sm rounded-pill px-3"
-                              onClick={() => onDelete(j.id)}
-                              disabled={isSaving}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                              <button
+                                type="button"
+                                className="hx-admin-jobs-v2__icon-btn"
+                                title="Editar vacante"
+                                onClick={() => openEditModal(job.id)}
+                              >
+                                <i className="bi bi-pencil-fill"></i>
+                              </button>
+
+                              <button
+                                type="button"
+                                className="hx-admin-jobs-v2__icon-btn is-danger"
+                                onClick={() => onDelete(job.id)}
+                                title="Eliminar vacante"
+                              >
+                                <i className="bi bi-trash-fill"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="hx-admin-jobs-v2__footer">
+              Mostrando 1 a {filteredRows.length} de {rows.length} vacantes
+            </div>
+          </div>
+        )}
+      </section>
+
+      {showJobModal && (
+        <div className="hx-job-form-modal" onClick={closeJobModal}>
+          <div
+            className="hx-job-form-modal__dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="hx-job-form-modal__content">
+              <AdminJobForm
+                embedded
+                jobId={editingJobId}
+                onClose={closeJobModal}
+                onSaved={load}
+              />
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

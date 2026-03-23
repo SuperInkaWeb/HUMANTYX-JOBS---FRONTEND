@@ -31,10 +31,14 @@ export async function apiFetch(path, options = {}) {
     : null;
 
   if (!res.ok) {
-    const msg =
-      data && data.message ? data.message : `Error HTTP ${res.status}`;
-    throw new Error(msg);
-  }
+  const err = new Error(
+    data && data.message ? data.message : `Error HTTP ${res.status}`
+  );
+  err.status = res.status;
+  err.code = data?.code;
+  err.data = data;
+  throw err;
+}
 
   return data;
 }
@@ -115,7 +119,7 @@ export async function downloadCv() {
 
 export async function validateInvite(token, email) {
   const res = await fetch(
-    `${API_URL}/auth/invites/validate?token=${token}&email=${encodeURIComponent(email)}`
+    `${BASE_URL}/auth/invites/validate?token=${token}&email=${encodeURIComponent(email)}`
   );
 
   const data = await res.json();

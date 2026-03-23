@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import "./auth.css";
 
 export default function Register() {
   const nav = useNavigate();
@@ -9,57 +10,88 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
+
     try {
       setError("");
+      setLoading(true);
 
       const u = await register(email, password);
 
       if (!u) return nav("/empleos");
 
-      // Nuevo usuario candidato: casi siempre profile_complete=false -> onboarding
       if (u.role === "CANDIDATE" && u.profile_complete === false) {
         return nav("/mi-perfil");
       }
 
       return nav("/empleos");
     } catch (e2) {
-      setError(e2.message);
+      setError(e2.message || "No se pudo crear la cuenta");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 520 }}>
-      <h2 className="fw-bold mb-3">Crear cuenta</h2>
+    <section className="hx-auth-page">
+      <div className="hx-auth-shell">
+        <div className="hx-auth-card">
+          <div className="hx-auth-card__header">
+            <h1 className="hx-auth-title">Crear cuenta</h1>
+          </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+          {error && (
+            <div className="alert alert-danger hx-auth-alert" role="alert">
+              {error}
+            </div>
+          )}
 
-      <form onSubmit={onSubmit} className="card card-body">
-        <label className="form-label">Email</label>
-        <input
-          className="form-control mb-3"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <form onSubmit={onSubmit} className="hx-auth-form">
+            <div className="hx-auth-field">
+              <label className="hx-auth-label">Email</label>
+              <div className="hx-auth-inputwrap">
+                <i className="bi bi-envelope hx-auth-icon"></i>
+                <input
+                  type="email"
+                  className="hx-auth-input"
+                  placeholder="Ingresa tu correo"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+            </div>
 
-        <label className="form-label">Contraseña</label>
-        <input
-          type="password"
-          className="form-control mb-3"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+            <div className="hx-auth-field">
+              <label className="hx-auth-label">Contraseña</label>
+              <div className="hx-auth-inputwrap">
+                <i className="bi bi-lock hx-auth-icon"></i>
+                <input
+                  type="password"
+                  className="hx-auth-input"
+                  placeholder="Crea una contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+            </div>
 
-        <button className="btn btn-dark rounded-pill" type="submit">
-          Crear
-        </button>
+            <button className="hx-auth-submit" type="submit" disabled={loading}>
+              {loading ? "Creando..." : "Crear cuenta"}
+            </button>
 
-        <div className="mt-3 small">
-          ¿Ya tienes cuenta? <Link to="/login">Iniciar sesión</Link>
+            <div className="hx-auth-footertext">
+              ¿Ya tienes cuenta? <Link to="/login">Iniciar sesión</Link>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
+      </div>
+    </section>
   );
 }

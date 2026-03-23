@@ -1,9 +1,18 @@
 export default function Footer() {
   return (
-    <footer className="border-top mt-5">
-      <div className="container py-4 small text-muted d-flex justify-content-between flex-wrap gap-2">
-        <span>© {new Date().getFullYear()} Humantyx Jobs</span>
-        <span>Portal de empleos</span>
+    <footer className="hx-footer">
+      <div className="container hx-footer-row">
+
+        <img
+          src="/logo-footer-humantyx.png"
+          alt="Humantyx Jobs"
+          className="hx-footer-logo"
+        />
+
+        <div className="hx-footer-text">
+          © 2026 Humantyx Jobs · Todos los derechos reservados
+        </div>
+
       </div>
     </footer>
   );

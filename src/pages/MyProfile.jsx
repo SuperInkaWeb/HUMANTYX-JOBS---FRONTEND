@@ -1,81 +1,107 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { apiFetch } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import CvManager from "../components/CvManager";
+import "./my-profile.css";
 
-const DOC_TYPES = [
-  { value: "", label: "Seleccionar..." },
-  { value: "DNI", label: "DNI" },
-  { value: "PASSPORT", label: "Pasaporte" },
-  { value: "CE", label: "Carné de extranjería" },
-];
+import ProfileHeader from "../components/profile/ProfileHeader";
+import ProfileContactCard from "../components/profile/ProfileContactCard";
+import ProfileProfessionalSection from "../components/profile/ProfileProfessionalSection";
+import ProfileAcademicSection from "../components/profile/ProfileAcademicSection";
+import ProfileWorkSection from "../components/profile/ProfileWorkSection";
+import ProfileSidebar from "../components/profile/ProfileSidebar";
 
-const GENDERS = [
-  { value: "", label: "Seleccionar..." },
-  { value: "MALE", label: "Masculino" },
-  { value: "FEMALE", label: "Femenino" },
-  { value: "OTHER", label: "Otro" },
-  { value: "PREFER_NOT_TO_SAY", label: "Prefiero no decirlo" },
-];
+import PersonalInfoModal from "../components/profile/PersonalInfoModal";
+import ProfessionalInfoModal from "../components/profile/ProfessionalInfoModal";
+import AcademicItemModal from "../components/profile/AcademicItemModal";
+import WorkItemModal from "../components/profile/WorkItemModal";
+import HeadlineModal from "../components/profile/HeadlineModal";
+import ConfirmModal from "../components/profile/ConfirmModal";
 
-const MARITAL = [
-  { value: "", label: "Seleccionar..." },
-  { value: "SINGLE", label: "Soltero/a" },
-  { value: "MARRIED", label: "Casado/a" },
-  { value: "DIVORCED", label: "Divorciado/a" },
-  { value: "WIDOWED", label: "Viudo/a" },
-];
+import {
+  AVAILABILITY,
+  createAcademicItem,
+  createWorkItem,
+  isAcademicItemEmpty,
+  isProfessionalInfoEmpty,
+  isWorkItemEmpty,
+  cloneFormState,
+  hasSectionChanges,
+} from "../utils/profileHelpers";
 
-const EDUCATION = [
-  { value: "", label: "Seleccionar..." },
-  { value: "SECONDARY", label: "Secundaria" },
-  { value: "TECHNICAL", label: "Técnico" },
-  { value: "UNIVERSITY", label: "Universitario" },
-  { value: "POSTGRAD", label: "Postgrado" },
-];
+import {
+  validateAcademicItemComplete,
+  validateWorkItemComplete,
+} from "../utils/profileValidation";
 
-const AVAILABILITY = [
-  { value: "", label: "Seleccionar..." },
-  { value: "IMMEDIATE", label: "Inmediata" },
-  { value: "TWO_WEEKS", label: "En 2 semanas" },
-  { value: "ONE_MONTH", label: "En 1 mes" },
-];
+import useProfileModals from "../hooks/useProfileModals";
+import useAcademicManager from "../hooks/useAcademicManager";
+import useWorkManager from "../hooks/useWorkManager";
+import useProfilePersistence from "../hooks/useProfilePersistence";
+
+const INITIAL_FORM = {
+  first_name: "",
+  last_name: "",
+  phone: "",
+  document_type: "",
+  document_number: "",
+  country: "",
+  department: "",
+  city: "",
+  birth_date: "",
+  gender: "",
+  marital_status: "",
+  headline: "",
+  about: "",
+  experience_years: "",
+  availability: "",
+  academic_items: [createAcademicItem()],
+  work_items: [createWorkItem()],
+};
 
 export default function MyProfile() {
-  const { user, refreshMe } = useAuth(); // 👈 usamos refreshMe
-  const location = useLocation();
-  const nav = useNavigate();
+  const { user, refreshMe } = useAuth();
 
-  const [form, setForm] = useState({
-    // obligatorios (según tu backend)
-    first_name: "",
-    last_name: "",
-    phone: "",
-    document_type: "",
-    document_number: "",
-    country: "",
-    department: "",
-    city: "",
+  const [sectionDraft, setSectionDraft] = useState(null);
+  const [academicDraft, setAcademicDraft] = useState(null);
+  const [workDraft, setWorkDraft] = useState(null);
 
-    // opcionales
-    birth_date: "",
-    gender: "",
-    marital_status: "",
-    headline: "",
-    about: "",
-    education_level: "",
-    experience_years: "",
-    availability: "",
+  const {
+    confirmState,
+    openConfirm,
+    closeConfirm,
+    handleConfirmAccept,
+    activeModal,
+    setActiveModal,
+    academicItemModal,
+    setAcademicItemModal,
+    workItemModal,
+    setWorkItemModal,
+    resetAllProfileModals,
+  } = useProfileModals();
+
+  const {
+    form,
+    setForm,
+    cvInfo,
+    loading,
+    saving,
+    error,
+    setError,
+    msg,
+    setMsg,
+    persistProfile,
+    saveProfileNow,
+    validateFormForSave,
+  } = useProfilePersistence({
+    refreshMe,
+    isAcademicItemEmpty,
+    isWorkItemEmpty,
+    resetAllProfileModals,
+    setAcademicDraft,
+    setWorkDraft,
+    setSectionDraft,
   });
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
-
-  const bannerMsg = useMemo(() => location.state?.message || "", [location.state]);
-  const redirectBackTo = useMemo(() => location.state?.from || "", [location.state]);
+  const safeForm = form || INITIAL_FORM;
 
   const requiredKeys = useMemo(
     () => [
@@ -91,9 +117,38 @@ export default function MyProfile() {
     []
   );
 
+  const visibleAcademicItems = useMemo(
+    () => (safeForm.academic_items || []).filter((item) => !isAcademicItemEmpty(item)),
+    [safeForm.academic_items]
+  );
+
+  const visibleWorkItems = useMemo(
+    () => (safeForm.work_items || []).filter((item) => !isWorkItemEmpty(item)),
+    [safeForm.work_items]
+  );
+
+  const hasProfessionalInfo = useMemo(
+    () => !isProfessionalInfoEmpty(safeForm),
+    [safeForm]
+  );
+
+  const hasAcademicInfo = visibleAcademicItems.length > 0;
+  const hasWorkInfo = visibleWorkItems.length > 0;
+
+  const hasPersonalInfo = useMemo(() => {
+    return !!(
+      safeForm.first_name.trim() ||
+      safeForm.last_name.trim() ||
+      safeForm.phone.trim() ||
+      user?.email ||
+      safeForm.department.trim() ||
+      safeForm.city.trim()
+    );
+  }, [safeForm, user?.email]);
+
   const requiredProgress = useMemo(() => {
     const filled = requiredKeys.filter((k) => {
-      const v = form[k];
+      const v = safeForm[k];
       return typeof v === "string" ? v.trim() : !!v;
     }).length;
 
@@ -101,484 +156,429 @@ export default function MyProfile() {
     const pct = Math.round((filled / total) * 100);
 
     return { filled, total, pct };
-  }, [form, requiredKeys]);
+  }, [safeForm, requiredKeys]);
 
-  const profileCompleteUI = requiredProgress.filled === requiredProgress.total;
+  const checklist = useMemo(() => {
+    const personalComplete =
+      !!safeForm.first_name?.trim() &&
+      !!safeForm.last_name?.trim() &&
+      !!safeForm.phone &&
+      !!safeForm.document_type &&
+      !!safeForm.document_number &&
+      !!safeForm.country?.trim() &&
+      !!safeForm.department?.trim() &&
+      !!safeForm.city?.trim();
 
-  // Cargar datos actuales
-  useEffect(() => {
-    (async () => {
+    const professionalComplete =
+      !!safeForm.headline?.trim() &&
+      !!safeForm.about?.trim() &&
+      !!safeForm.experience_years &&
+      !!safeForm.availability;
+
+    const academicComplete = visibleAcademicItems.some((item) => {
       try {
-        setError("");
-        setMsg("");
-        setLoading(true);
-
-        const me = await apiFetch("/auth/me");
-        const u = me?.user || {};
-
-        setForm({
-          first_name: u.first_name || "",
-          last_name: u.last_name || "",
-          phone: u.phone || "",
-          document_type: u.document_type || "",
-          document_number: u.document_number || "",
-          country: u.country || "",
-          department: u.department || "",
-          city: u.city || "",
-
-          birth_date: u.birth_date ? String(u.birth_date).slice(0, 10) : "",
-          gender: u.gender || "",
-          marital_status: u.marital_status || "",
-          headline: u.headline || "",
-          about: u.about || "",
-          education_level: u.education_level || "",
-          experience_years: u.experience_years ?? "",
-          availability: u.availability || "",
-        });
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
+        validateAcademicItemComplete(item, 0);
+        if (
+          item.start_date &&
+          item.end_date &&
+          new Date(item.end_date) < new Date(item.start_date)
+        ) {
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
       }
-    })();
-  }, []);
+    });
 
-  function onChange(e) {
-    const { name, value } = e.target;
+    const workComplete = visibleWorkItems.some((item) => {
+      try {
+        validateWorkItemComplete(item, 0);
+        if (
+          item.start_date &&
+          item.end_date &&
+          new Date(item.end_date) < new Date(item.start_date)
+        ) {
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    });
 
-    // Solo dígitos para teléfono
-    if (name === "phone") {
-      const onlyDigits = value.replace(/\D/g, "");
-      setForm((prev) => ({ ...prev, [name]: onlyDigits }));
+    const cvComplete =
+      !!cvInfo?.cv?.original_name ||
+      !!cvInfo?.cv?.filename ||
+      !!cvInfo?.cv?.fileName ||
+      !!cvInfo?.cv?.url ||
+      !!cvInfo?.cv?.path;
+
+    return [
+      { label: "Información personal", done: personalComplete },
+      { label: "Información profesional", done: professionalComplete },
+      { label: "Información académica", done: academicComplete },
+      { label: "Experiencia laboral", done: workComplete },
+      { label: "CV", done: cvComplete },
+    ];
+  }, [safeForm, visibleAcademicItems, visibleWorkItems, cvInfo]);
+
+  const totalProfileProgress = useMemo(() => {
+    const sections = checklist.map((item) => item.done);
+    const completed = sections.filter(Boolean).length;
+    const pct = Math.round((completed / sections.length) * 100);
+
+    return { pct };
+  }, [checklist]);
+
+  const fullName = useMemo(() => {
+    const name = `${safeForm.first_name || ""} ${safeForm.last_name || ""}`.trim();
+    return name || "Perfil pendiente";
+  }, [safeForm.first_name, safeForm.last_name]);
+
+  const avatarText = useMemo(() => {
+    const a = safeForm.first_name?.trim()?.[0] || "";
+    const b = safeForm.last_name?.trim()?.[0] || "";
+    const initials = `${a}${b}`.toUpperCase();
+    return initials || (user?.email?.[0] || "U").toUpperCase();
+  }, [safeForm.first_name, safeForm.last_name, user?.email]);
+
+  const availabilityLabel = safeForm.availability
+    ? AVAILABILITY.find((x) => x.value === safeForm.availability)?.label ||
+      "No especificado"
+    : "No especificado";
+
+  const currentAcademicItem = academicDraft;
+  const currentWorkItem = workDraft;
+  const modalForm = sectionDraft || safeForm;
+
+  const isAnyModalOpen =
+    !!activeModal ||
+    academicItemModal.open ||
+    workItemModal.open ||
+    confirmState.open;
+
+  useEffect(() => {
+    document.body.style.overflow = isAnyModalOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isAnyModalOpen]);
+
+  function getSectionFields(section) {
+    if (section === "personal") {
+      return [
+        "first_name",
+        "last_name",
+        "phone",
+        "document_type",
+        "document_number",
+        "country",
+        "department",
+        "city",
+        "birth_date",
+        "gender",
+        "marital_status",
+      ];
+    }
+
+    if (section === "professional") {
+      return ["headline", "about", "experience_years", "availability"];
+    }
+
+    if (section === "headline") {
+      return ["headline"];
+    }
+
+    return [];
+  }
+
+  function openSectionModal(section, itemId = null) {
+    setError("");
+    setMsg("");
+
+    if (section === "academic") {
+      openAcademicItemModal("edit", itemId);
       return;
     }
 
-    // document_number: si es DNI, solo dígitos (para pasaporte/CE permitimos alfanumérico)
-    if (name === "document_number") {
-      if (form.document_type === "DNI") {
-        const onlyDigits = value.replace(/\D/g, "");
-        setForm((prev) => ({ ...prev, [name]: onlyDigits }));
-        return;
-      }
+    if (section === "work") {
+      openWorkItemModal("edit", itemId);
+      return;
     }
 
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setSectionDraft(cloneFormState(safeForm));
+    setActiveModal(section);
+  }
+
+  function closeSectionModal() {
+    if (saving) return;
+
+    const changed =
+      !!activeModal &&
+      !!sectionDraft &&
+      hasSectionChanges(getSectionFields(activeModal), safeForm, sectionDraft);
+
+    if (changed) {
+      openConfirm({
+        title: "Descartar cambios",
+        message: "¿Estás seguro de que deseas descartar los cambios realizados?",
+        confirmText: "Descartar",
+        cancelText: "Seguir",
+        danger: true,
+        onConfirm: () => {
+          setSectionDraft(null);
+          setActiveModal(null);
+        },
+      });
+      return;
+    }
+
+    setSectionDraft(null);
+    setActiveModal(null);
+  }
+
+  function onDocumentTypeChange(value) {
+    const target = sectionDraft ? setSectionDraft : setForm;
+
+    target((prev) => ({
+      ...prev,
+      document_type: value,
+      document_number:
+        value === "DNI"
+          ? String(prev.document_number || "").replace(/\D/g, "")
+          : prev.document_number,
+    }));
+  }
+
+  const {
+    openAcademicSectionForAdd,
+    openAcademicItemModal,
+    closeAcademicItemModal,
+    onAcademicDraftChange,
+    saveAcademicDraft,
+    confirmRemoveAcademicItem,
+  } = useAcademicManager({
+    form: safeForm,
+    setError,
+    setMsg,
+    openConfirm,
+    academicItemModal,
+    setAcademicItemModal,
+    academicDraft,
+    setAcademicDraft,
+    persistProfile,
+  });
+
+  const {
+    openWorkSectionForAdd,
+    openWorkItemModal,
+    closeWorkItemModal,
+    onWorkDraftChange,
+    saveWorkDraft,
+    confirmRemoveWorkItem,
+  } = useWorkManager({
+    form: safeForm,
+    setError,
+    setMsg,
+    openConfirm,
+    workItemModal,
+    setWorkItemModal,
+    workDraft,
+    setWorkDraft,
+    persistProfile,
+  });
+
+  function onChange(e) {
+    const { name, value } = e.target;
+    const target = sectionDraft ? setSectionDraft : setForm;
+
+    if (name === "phone") {
+      const onlyDigits = value.replace(/\D/g, "");
+      target((prev) => ({ ...prev, [name]: onlyDigits }));
+      return;
+    }
+
+    if (
+      name === "document_number" &&
+      (sectionDraft ? sectionDraft.document_type : safeForm.document_type) === "DNI"
+    ) {
+      const onlyDigits = value.replace(/\D/g, "");
+      target((prev) => ({ ...prev, [name]: onlyDigits }));
+      return;
+    }
+
+    if (name === "experience_years") {
+      const onlyDigits = value.replace(/\D/g, "");
+      target((prev) => ({ ...prev, [name]: onlyDigits }));
+      return;
+    }
+
+    target((prev) => ({ ...prev, [name]: value }));
   }
 
   function validateRequired() {
-    if (!form.first_name.trim()) throw new Error("Nombres es obligatorio.");
-    if (!form.last_name.trim()) throw new Error("Apellidos es obligatorio.");
-
-    if (!form.phone || form.phone.length !== 9) {
-      throw new Error("El teléfono debe tener 9 dígitos.");
-    }
-
-    if (!form.document_type) throw new Error("Tipo de documento es obligatorio.");
-    if (!form.document_number.trim()) throw new Error("Número de documento es obligatorio.");
-
-    if (form.document_type === "DNI" && form.document_number.length !== 8) {
-      throw new Error("El DNI debe tener 8 dígitos.");
-    }
-
-    if (!form.country.trim()) throw new Error("País es obligatorio.");
-    if (!form.department.trim()) throw new Error("Departamento/Estado es obligatorio.");
-    if (!form.city.trim()) throw new Error("Ciudad es obligatorio.");
+    validateFormForSave(sectionDraft || safeForm);
   }
 
   async function onSave(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
 
     try {
       setError("");
       setMsg("");
-      setSaving(true);
 
       validateRequired();
 
-      const payload = {
-        first_name: form.first_name.trim(),
-        last_name: form.last_name.trim(),
-        phone: form.phone,
-
-        document_type: form.document_type,
-        document_number: form.document_number.trim(),
-
-        country: form.country.trim(),
-        department: form.department.trim(),
-        city: form.city.trim(),
-
-        // opcionales
-        birth_date: form.birth_date || null,
-        gender: form.gender || null,
-        marital_status: form.marital_status || null,
-        headline: form.headline?.trim() || null,
-        about: form.about?.trim() || null,
-        education_level: form.education_level || null,
-        experience_years: form.experience_years === "" ? null : Number(form.experience_years),
-        availability: form.availability || null,
+      const modalLabels = {
+        personal: "información personal",
+        professional: "información profesional",
+        headline: "titular profesional",
       };
 
-      const data = await apiFetch("/auth/me/profile", {
-        method: "PUT",
-        body: JSON.stringify(payload),
+      const sectionLabel = modalLabels[activeModal] || "información del perfil";
+
+      openConfirm({
+        title: "Guardar cambios",
+        message: `¿Deseas guardar los cambios realizados en ${sectionLabel}?`,
+        confirmText: "Guardar",
+        cancelText: "Cancelar",
+        onConfirm: async () => {
+          await saveProfileNow(sectionDraft || safeForm);
+        },
       });
-
-      const p = data?.profile || data || {};
-
-      setForm((prev) => ({
-        ...prev,
-        first_name: p.first_name ?? prev.first_name,
-        last_name: p.last_name ?? prev.last_name,
-        phone: p.phone ?? prev.phone,
-        document_type: p.document_type ?? prev.document_type,
-        document_number: p.document_number ?? prev.document_number,
-        country: p.country ?? prev.country,
-        department: p.department ?? prev.department,
-        city: p.city ?? prev.city,
-
-        birth_date: p.birth_date ? String(p.birth_date).slice(0, 10) : prev.birth_date,
-        gender: p.gender ?? prev.gender,
-        marital_status: p.marital_status ?? prev.marital_status,
-        headline: p.headline ?? prev.headline,
-        about: p.about ?? prev.about,
-        education_level: p.education_level ?? prev.education_level,
-        experience_years: p.experience_years ?? prev.experience_years,
-        availability: p.availability ?? prev.availability,
-      }));
-
-      // ✅ CLAVE: refrescar /auth/me para actualizar user.profile_complete en el AuthContext
-      await refreshMe();
-
-      setMsg("✅ Perfil guardado correctamente.");
-
-      if (redirectBackTo) {
-        nav(redirectBackTo, { replace: true });
-      }
     } catch (e2) {
       setError(e2.message);
-    } finally {
-      setSaving(false);
     }
   }
 
-  return (
-    <div className="container py-4" style={{ maxWidth: 920 }}>
-      <div className="d-flex align-items-end justify-content-between flex-wrap gap-2 mb-3">
-        <div>
-          <h2 className="fw-bold mb-1">Mi perfil</h2>
-          <div className="text-muted small">{user?.email}</div>
-        </div>
-
-        <div className="small">
-          {profileCompleteUI ? (
-            <span className="badge text-bg-success">Perfil completo</span>
-          ) : (
-            <span className="badge text-bg-warning">Perfil incompleto</span>
-          )}
-        </div>
+  if (loading) {
+    return (
+      <div className="container py-4 py-lg-5" style={{ maxWidth: 1180 }}>
+        <div className="hx-profile-shell-card text-center py-5">Cargando...</div>
       </div>
+    );
+  }
 
-      {bannerMsg && <div className="alert alert-warning">{bannerMsg}</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
-      {msg && <div className="alert alert-success">{msg}</div>}
-
-      <div className="card mb-3">
-        <div className="card-body">
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div className="fw-semibold">
-              Progreso del perfil: {requiredProgress.filled}/{requiredProgress.total}
-            </div>
-            <div className="text-muted small">{requiredProgress.pct}%</div>
+  return (
+    <>
+      <div className="py-4 py-lg-5 hx-profile-v2">
+        {(error || msg) && (
+          <div className="mb-3">
+            {error && <div className="alert alert-danger rounded-4 mb-2">{error}</div>}
+            {msg && <div className="alert alert-success rounded-4 mb-0">{msg}</div>}
           </div>
+        )}
 
-          <div className="progress mt-2" style={{ height: 10 }}>
-            <div
-              className="progress-bar"
-              role="progressbar"
-              style={{ width: `${requiredProgress.pct}%` }}
-              aria-valuenow={requiredProgress.pct}
-              aria-valuemin="0"
-              aria-valuemax="100"
+        <div className="hx-profile-layout">
+          <div className="hx-profile-main">
+            <ProfileHeader
+              fullName={fullName}
+              headline={safeForm.headline}
+              openSectionModal={openSectionModal}
+            />
+
+            <ProfileContactCard
+              user={user}
+              form={safeForm}
+              fullName={fullName}
+              hasPersonalInfo={hasPersonalInfo}
+              openSectionModal={openSectionModal}
+            />
+
+            <ProfileProfessionalSection
+              hasProfessionalInfo={hasProfessionalInfo}
+              form={safeForm}
+              availabilityLabel={availabilityLabel}
+              openSectionModal={openSectionModal}
+            />
+
+            <ProfileAcademicSection
+              hasAcademicInfo={hasAcademicInfo}
+              visibleAcademicItems={visibleAcademicItems}
+              openAcademicSectionForAdd={openAcademicSectionForAdd}
+              openSectionModal={openSectionModal}
+              removeAcademicItem={confirmRemoveAcademicItem}
+            />
+
+            <ProfileWorkSection
+              hasWorkInfo={hasWorkInfo}
+              visibleWorkItems={visibleWorkItems}
+              openWorkSectionForAdd={openWorkSectionForAdd}
+              openSectionModal={openSectionModal}
+              removeWorkItem={confirmRemoveWorkItem}
             />
           </div>
 
-          {!profileCompleteUI && (
-            <div className="text-muted small mt-2">
-              Completa los campos obligatorios para poder postular y usar CV.
-            </div>
-          )}
+          <ProfileSidebar
+            avatarText={avatarText}
+            fullName={fullName}
+            headline={safeForm.headline}
+            totalProfileProgress={totalProfileProgress}
+            checklist={checklist}
+            requiredProgress={requiredProgress}
+          />
         </div>
       </div>
 
-      {loading ? (
-        <div>Cargando...</div>
-      ) : (
-        <form onSubmit={onSave}>
-          <div className="card mb-3">
-            <div className="card-header bg-white fw-bold">Datos obligatorios</div>
-            <div className="card-body">
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">Nombres *</label>
-                  <input
-                    className="form-control"
-                    name="first_name"
-                    value={form.first_name}
-                    onChange={onChange}
-                    placeholder="Ej: Héctor"
-                  />
-                </div>
+      <PersonalInfoModal
+        isOpen={activeModal === "personal"}
+        closeModal={closeSectionModal}
+        onSave={onSave}
+        saving={saving}
+        form={modalForm}
+        onChange={onChange}
+        onDocumentTypeChange={onDocumentTypeChange}
+      />
 
-                <div className="col-md-6">
-                  <label className="form-label">Apellidos *</label>
-                  <input
-                    className="form-control"
-                    name="last_name"
-                    value={form.last_name}
-                    onChange={onChange}
-                    placeholder="Ej: Prada"
-                  />
-                </div>
+      <HeadlineModal
+        isOpen={activeModal === "headline"}
+        closeModal={closeSectionModal}
+        onSave={onSave}
+        saving={saving}
+        form={modalForm}
+        onChange={onChange}
+      />
 
-                <div className="col-md-6">
-                  <label className="form-label">Teléfono *</label>
-                  <input
-                    className="form-control"
-                    name="phone"
-                    value={form.phone}
-                    onChange={onChange}
-                    placeholder="9 dígitos"
-                    maxLength={9}
-                    inputMode="numeric"
-                  />
-                </div>
+      <ProfessionalInfoModal
+        isOpen={activeModal === "professional"}
+        closeModal={closeSectionModal}
+        onSave={onSave}
+        saving={saving}
+        form={modalForm}
+        onChange={onChange}
+      />
 
-                <div className="col-md-3">
-                  <label className="form-label">Tipo de documento *</label>
-                  <select
-                    className="form-select"
-                    name="document_type"
-                    value={form.document_type}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setForm((prev) => ({
-                        ...prev,
-                        document_type: v,
-                        document_number:
-                          v === "DNI"
-                            ? prev.document_number.replace(/\D/g, "")
-                            : prev.document_number,
-                      }));
-                    }}
-                  >
-                    {DOC_TYPES.map((d) => (
-                      <option key={d.value} value={d.value}>
-                        {d.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+      <AcademicItemModal
+        isOpen={academicItemModal.open}
+        closeModal={closeAcademicItemModal}
+        item={currentAcademicItem}
+        mode={academicItemModal.mode}
+        onAcademicChange={onAcademicDraftChange}
+        onSaveDraft={saveAcademicDraft}
+        error={error}
+      />
 
-                <div className="col-md-3">
-                  <label className="form-label">N° documento *</label>
-                  <input
-                    className="form-control"
-                    name="document_number"
-                    value={form.document_number}
-                    onChange={onChange}
-                    placeholder={form.document_type === "DNI" ? "8 dígitos" : "Ej: A1234567"}
-                    maxLength={20}
-                  />
-                </div>
+      <WorkItemModal
+        isOpen={workItemModal.open}
+        closeModal={closeWorkItemModal}
+        item={currentWorkItem}
+        mode={workItemModal.mode}
+        onWorkChange={onWorkDraftChange}
+        onSaveDraft={saveWorkDraft}
+        error={error}
+      />
 
-                <div className="col-md-4">
-                  <label className="form-label">País *</label>
-                  <input
-                    className="form-control"
-                    name="country"
-                    value={form.country}
-                    onChange={onChange}
-                    placeholder="Ej: Perú"
-                  />
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Departamento/Estado *</label>
-                  <input
-                    className="form-control"
-                    name="department"
-                    value={form.department}
-                    onChange={onChange}
-                    placeholder="Ej: Lima"
-                  />
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Ciudad *</label>
-                  <input
-                    className="form-control"
-                    name="city"
-                    value={form.city}
-                    onChange={onChange}
-                    placeholder="Ej: La Victoria"
-                  />
-                </div>
-              </div>
-
-              <div className="d-flex justify-content-end mt-4">
-                <button className="btn btn-dark rounded-pill px-4" disabled={saving}>
-                  {saving ? "Guardando..." : "Guardar perfil"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="accordion mb-3" id="profileOptionalAcc">
-            <div className="accordion-item">
-              <h2 className="accordion-header" id="optHead">
-                <button
-                  className="accordion-button collapsed fw-bold"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#optCollapse"
-                  aria-expanded="false"
-                  aria-controls="optCollapse"
-                >
-                  Datos opcionales (puedes completarlos después)
-                </button>
-              </h2>
-              <div
-                id="optCollapse"
-                className="accordion-collapse collapse"
-                aria-labelledby="optHead"
-                data-bs-parent="#profileOptionalAcc"
-              >
-                <div className="accordion-body">
-                  <div className="row g-3">
-                    <div className="col-md-4">
-                      <label className="form-label">Fecha de nacimiento</label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        name="birth_date"
-                        value={form.birth_date}
-                        onChange={onChange}
-                      />
-                    </div>
-
-                    <div className="col-md-4">
-                      <label className="form-label">Género</label>
-                      <select
-                        className="form-select"
-                        name="gender"
-                        value={form.gender}
-                        onChange={onChange}
-                      >
-                        {GENDERS.map((g) => (
-                          <option key={g.value} value={g.value}>
-                            {g.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-md-4">
-                      <label className="form-label">Estado civil</label>
-                      <select
-                        className="form-select"
-                        name="marital_status"
-                        value={form.marital_status}
-                        onChange={onChange}
-                      >
-                        {MARITAL.map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-md-6">
-                      <label className="form-label">Titular / Headline</label>
-                      <input
-                        className="form-control"
-                        name="headline"
-                        value={form.headline}
-                        onChange={onChange}
-                        placeholder="Ej: Practicante de Backend Node.js"
-                      />
-                    </div>
-
-                    <div className="col-md-3">
-                      <label className="form-label">Nivel de estudios</label>
-                      <select
-                        className="form-select"
-                        name="education_level"
-                        value={form.education_level}
-                        onChange={onChange}
-                      >
-                        {EDUCATION.map((ed) => (
-                          <option key={ed.value} value={ed.value}>
-                            {ed.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-md-3">
-                      <label className="form-label">Años de experiencia</label>
-                      <input
-                        className="form-control"
-                        name="experience_years"
-                        value={form.experience_years}
-                        onChange={onChange}
-                        inputMode="numeric"
-                        placeholder="Ej: 0, 1, 2..."
-                      />
-                    </div>
-
-                    <div className="col-md-6">
-                      <label className="form-label">Disponibilidad</label>
-                      <select
-                        className="form-select"
-                        name="availability"
-                        value={form.availability}
-                        onChange={onChange}
-                      >
-                        {AVAILABILITY.map((a) => (
-                          <option key={a.value} value={a.value}>
-                            {a.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-12">
-                      <label className="form-label">Acerca de mí</label>
-                      <textarea
-                        className="form-control"
-                        name="about"
-                        value={form.about}
-                        onChange={onChange}
-                        rows={4}
-                        placeholder="Cuéntanos un poco sobre ti..."
-                      />
-                    </div>
-
-                    <div className="d-flex justify-content-end mt-2">
-                      <button className="btn btn-outline-dark rounded-pill px-4" disabled={saving}>
-                        {saving ? "Guardando..." : "Guardar opcionales"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </form>
-      )}
-
-      <CvManager />
-    </div>
+      <ConfirmModal
+        isOpen={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        danger={confirmState.danger}
+        onConfirm={handleConfirmAccept}
+        onCancel={closeConfirm}
+      />
+    </>
   );
 }

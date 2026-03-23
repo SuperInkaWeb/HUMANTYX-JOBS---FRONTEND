@@ -1,0 +1,114 @@
+/* ============================= */
+/* HERO HOME HUMANTYX */
+/* ============================= */
+
+.home-hero{
+  background:
+    radial-gradient(900px 280px at 50% 15%, rgba(110, 201, 198, 0.20), rgba(255,255,255,0) 60%),
+    radial-gradient(900px 300px at 85% 15%, rgba(77, 121, 255, 0.12), rgba(255,255,255,0) 55%),
+    #fff;
+}
+
+/* palabras resaltadas */
+
+.home-accent{
+  color:#4d79ff;
+}
+
+.home-accent-2{
+  color:#6EC9C6;
+}
+
+/* ============================= */
+/* BUSCADOR TIPO INDEED */
+/* ============================= */
+
+.home-searchbar{
+  max-width:840px;
+}
+
+.home-searchbar-inner{
+  display:flex;
+  align-items:center;
+  gap:0;
+  padding:10px;
+  border:1px solid rgba(0,0,0,0.12);
+  border-radius:999px;
+  background:#fff;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+
+.home-field{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  flex:1;
+  min-width:0;
+}
+
+.home-icon{
+  color:rgba(0,0,0,0.55);
+  display:inline-flex;
+}
+
+.home-input{
+  width:100%;
+  border:0;
+  outline:none;
+  font-size:16px;
+  background:transparent;
+}
+
+.home-input::placeholder{
+  color:rgba(0,0,0,0.45);
+}
+
+.home-divider{
+  width:1px;
+  align-self:stretch;
+  background:rgba(0,0,0,0.12);
+}
+
+/* ============================= */
+/* BOTON HUMANTYX */
+/* ============================= */
+
+.home-cta{
+  border:0;
+  border-radius:999px;
+  padding:12px 18px;
+  font-weight:700;
+  color:#fff;
+  background:linear-gradient(90deg,#6EC9C6,#41AAA6);
+  box-shadow:0 10px 22px rgba(65,170,166,0.25);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+}
+
+.home-cta:disabled{
+  opacity:0.65;
+  cursor:not-allowed;
+  box-shadow:none;
+}
+
+/* ============================= */
+/* RESPONSIVE */
+/* ============================= */
+
+@media (max-width:768px){
+
+  .home-searchbar-inner{
+    border-radius:24px;
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .home-divider{
+    width:100%;
+    height:1px;
+  }
+
+}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import "./auth.css";
 
 export default function Login() {
   const nav = useNavigate();
@@ -9,59 +10,88 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
+
     try {
       setError("");
+      setLoading(true);
 
       const u = await login(email, password);
 
-      // Si por alguna razón no devuelve user, manda a empleos (fallback)
       if (!u) return nav("/empleos");
 
-      // Onboarding: candidato sin perfil completo -> /mi-perfil (o la ruta que uses)
       if (u.role === "CANDIDATE" && u.profile_complete === false) {
         return nav("/mi-perfil");
       }
 
-      // Admin/RRHH o candidato con perfil completo
       return nav("/empleos");
     } catch (e2) {
-      setError(e2.message);
+      setError(e2.message || "No se pudo iniciar sesión");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 520 }}>
-      <h2 className="fw-bold mb-3">Iniciar sesión</h2>
+    <section className="hx-auth-page">
+      <div className="container">
+        <div className="hx-auth-shell">
+          <div className="hx-auth-card">
+            <div className="hx-auth-card__header">
+              <h1 className="hx-auth-title">Iniciar sesión</h1>
+            </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+            {error && (
+              <div className="alert alert-danger hx-auth-alert" role="alert">
+                {error}
+              </div>
+            )}
 
-      <form onSubmit={onSubmit} className="card card-body">
-        <label className="form-label">Email</label>
-        <input
-          className="form-control mb-3"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+            <form onSubmit={onSubmit} className="hx-auth-form">
+              <div className="hx-auth-field">
+                <label className="hx-auth-label">Email</label>
+                <div className="hx-auth-inputwrap">
+                  <i className="bi bi-envelope hx-auth-icon"></i>
+                  <input
+                    type="email"
+                    className="hx-auth-input"
+                    placeholder="Ingresa tu correo"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
 
-        <label className="form-label">Contraseña</label>
-        <input
-          type="password"
-          className="form-control mb-3"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+              <div className="hx-auth-field">
+                <label className="hx-auth-label">Contraseña</label>
+                <div className="hx-auth-inputwrap">
+                  <i className="bi bi-lock hx-auth-icon"></i>
+                  <input
+                    type="password"
+                    className="hx-auth-input"
+                    placeholder="Ingresa tu contraseña"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
 
-        <button className="btn btn-dark rounded-pill" type="submit">
-          Entrar
-        </button>
+              <button className="hx-auth-submit" type="submit" disabled={loading}>
+                {loading ? "Entrando..." : "Entrar"}
+              </button>
 
-        <div className="mt-3 small">
-          ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>
+              <div className="hx-auth-footertext">
+                ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
-    </div>
+      </div>
+    </section>
   );
 }

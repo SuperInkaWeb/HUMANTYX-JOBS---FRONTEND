@@ -1,0 +1,32 @@
+.hx-auth-layout {
+  min-height: 100vh;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    radial-gradient(900px 340px at 50% 8%, rgba(139,191,190,0.18), transparent 60%),
+    linear-gradient(180deg, #fbfbfd 0%, #f4f7fb 100%);
+}
+
+.hx-auth-layout__logo {
+  margin-bottom: 0px;
+  flex-shrink: 0;
+  transform: translateY(-50px);
+}
+
+.hx-auth-logo {
+  height: 64px;
+  width: auto;
+  display: block;
+}
+
+.hx-auth-layout__content {
+  width: 100%;
+  max-width: 520px;
+}

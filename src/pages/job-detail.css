@@ -1,0 +1,251 @@
+.jobdetail-page {
+  background: #f3f5f7;
+  min-height: 100vh;
+}
+
+/* CONTENEDOR PRINCIPAL */
+
+.jobdetail-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* BOTON VOLVER */
+
+.jobdetail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  text-decoration: none;
+  color: #5b6b82;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.jobdetail-back:hover {
+  color: #6ec6c4;
+}
+
+/* CARD */
+
+.jobdetail-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 18px;
+  padding: 26px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.jobdetail-card + .jobdetail-card {
+  margin-top: 18px;
+}
+
+/* HEADER */
+
+.jobdetail-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.jobdetail-brand {
+  display: flex;
+  gap: 16px;
+}
+
+/* LOGO */
+
+.jobdetail-logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  background: #25304f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+/* TEXTO HEADER */
+
+.jobdetail-company {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.jobdetail-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2430;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.jobdetail-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.jobdetail-submeta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #8a94a6;
+  font-size: 13px;
+}
+
+/* BADGE ESTADO VACANTE */
+
+.jobdetail-status-row {
+  margin-top: 12px;
+}
+
+.jobdetail-job-status {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4f8b79;
+}
+
+/* BADGE POSTULACION */
+
+.jobdetail-hero-right {
+  flex-shrink: 0;
+}
+
+.jobdetail-application-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #e9f4f3;
+  color: #3d7c7a;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* DIVIDER */
+
+.jobdetail-divider {
+  width: 100%;
+  height: 1px;
+  background: #e8edf3;
+  margin: 24px 0;
+}
+
+/* TITULOS SECCIONES */
+
+.jobdetail-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2430;
+  margin-bottom: 16px;
+}
+
+/* GRID DETALLES */
+
+.jobdetail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* ITEM DETALLE */
+
+.jobdetail-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+/* ICONO */
+
+.jobdetail-info-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+/* LABEL */
+
+.jobdetail-info-label {
+  display: block;
+  font-size: 13px;
+  color: #8a94a6;
+  margin-bottom: 6px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* VALUE */
+
+.jobdetail-info-value {
+  display: block;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #1f2430;
+  font-weight: 700;
+}
+
+/* DESCRIPCION */
+
+.jobdetail-description p {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #4b5563;
+  margin-bottom: 14px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+
+  .jobdetail-shell {
+    padding: 0 14px;
+  }
+
+  .jobdetail-card {
+    padding: 20px;
+  }
+
+  .jobdetail-hero-top {
+    flex-direction: column;
+  }
+
+  .jobdetail-brand {
+    flex-direction: column;
+  }
+
+  .jobdetail-title {
+    font-size: 20px;
+  }
+
+  .jobdetail-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+}

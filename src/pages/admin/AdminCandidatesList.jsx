@@ -1,221 +1,221 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { apiFetch } from "../../services/api";
+import "./admin-candidates-list.css";
+
+function formatDate(dateString) {
+  if (!dateString) return "—";
+
+  const date = new Date(dateString);
+
+  return new Intl.DateTimeFormat("es-PE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function getInitials(firstName, lastName, email) {
+  const name = `${firstName || ""} ${lastName || ""}`.trim();
+
+  if (name) {
+    return name
+      .split(" ")
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("");
+  }
+
+  if (email) return email.slice(0, 2).toUpperCase();
+
+  return "—";
+}
 
 export default function AdminCandidatesList() {
-  const [rows, setRows] = useState([]);
-  const [q, setQ] = useState("");
-
+  const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [downloadingId, setDownloadingId] = useState(null);
-
   const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
+  const [search, setSearch] = useState("");
 
-  async function load() {
+  async function loadCandidates() {
     try {
-      setError("");
-      setMsg("");
       setLoading(true);
+      setError("");
 
       const data = await apiFetch("/admin/candidates");
-      const list = data?.candidates ?? data?.users ?? data ?? [];
-      setRows(Array.isArray(list) ? list : []);
-    } catch (e) {
-      setError(e.message);
-      setRows([]);
+
+      const normalized = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.candidates)
+        ? data.candidates
+        : [];
+
+      setCandidates(normalized);
+    } catch (err) {
+      setError(err.message || "Error listando candidatos");
+      setCandidates([]);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    loadCandidates();
   }, []);
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return rows;
+  const filteredCandidates = useMemo(() => {
+    const term = search.trim().toLowerCase();
 
-    return rows.filter((c) => {
-      const fullName = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim().toLowerCase();
-      const email = (c.email ?? "").toLowerCase();
-      const dni = (c.dni ?? "").toLowerCase();
-      const phone = (c.phone ?? "").toLowerCase();
+    if (!term) return candidates;
+
+    return candidates.filter((candidate) => {
+      const fullName =
+        `${candidate.first_name || ""} ${candidate.last_name || ""}`.toLowerCase();
 
       return (
-        fullName.includes(s) ||
-        email.includes(s) ||
-        dni.includes(s) ||
-        phone.includes(s)
+        fullName.includes(term) ||
+        (candidate.email || "").toLowerCase().includes(term) ||
+        (candidate.phone || "").toLowerCase().includes(term) ||
+        (candidate.document_number || "").toLowerCase().includes(term) ||
+        (candidate.document_type || "").toLowerCase().includes(term)
       );
     });
-  }, [rows, q]);
-
-  function fmtDate(iso) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleString();
-  }
-
-  async function downloadCv(candidateId, email) {
-    try {
-      setError("");
-      setMsg("");
-      setDownloadingId(candidateId);
-
-      const token = localStorage.getItem("token");
-      const BASE_URL = import.meta.env.VITE_API_URL;
-
-      const res = await fetch(`${BASE_URL}/admin/candidates/${candidateId}/cv`, {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        let message = `Error HTTP ${res.status}`;
-        try {
-          const j = JSON.parse(text);
-          message = j?.message || message;
-        } catch {
-          if (text) message = text;
-        }
-        throw new Error(message);
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `cv-${email || candidateId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-
-      setMsg("✅ CV descargado correctamente.");
-    } catch (e) {
-      // Caso típico: 404 "El candidato no tiene CV"
-      setError(e.message);
-    } finally {
-      setDownloadingId(null);
-    }
-  }
+  }, [candidates, search]);
 
   return (
-    <div className="container py-4">
-      <div className="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
-        <div>
-          <h2 className="fw-bold mb-1">Candidatos</h2>
-          <div className="text-muted small">
-            Lista global de candidatos registrados (máx. 100).
-          </div>
-        </div>
-
-        <div className="d-flex gap-2">
-          <Link to="/rrhh/vacantes" className="btn btn-outline-secondary rounded-pill px-4">
-            Volver
-          </Link>
-          <button className="btn btn-outline-dark rounded-pill px-4" onClick={load} disabled={loading}>
-            Recargar
-          </button>
+    <div className="acl-page">
+      <div className="acl-header">
+        <div className="acl-header__left">
+          <h1>Candidatos</h1>
+          <p>
+            Total de candidatos registrados:{" "}
+            <span>{candidates.length.toLocaleString("es-PE")}</span>
+          </p>
         </div>
       </div>
 
-      <div className="card mb-3">
-        <div className="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div style={{ minWidth: 280, flex: 1 }}>
-            <label className="form-label mb-1 fw-semibold">Buscar</label>
-            <input
-              className="form-control"
-              placeholder="Buscar por nombre, email, DNI o teléfono…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
+      <div className="acl-toolbar">
+        <div className="acl-search">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
 
-          <div className="text-muted small">
-            Mostrando <span className="fw-semibold">{filtered.length}</span> de{" "}
-            <span className="fw-semibold">{rows.length}</span>
-          </div>
+          <input
+            type="text"
+            placeholder="Buscar candidatos por nombre, email, teléfono o documento..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="acl-toolbar__count">
+          Mostrando {filteredCandidates.length} de {candidates.length}
         </div>
       </div>
 
-      {loading && <div>Cargando...</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
-      {msg && <div className="alert alert-success">{msg}</div>}
+      {error && <div className="acl-alert acl-alert--error">{error}</div>}
 
-      {!loading && (
-        <div className="card">
-          <div className="table-responsive">
-            <table className="table mb-0 align-middle">
-              <thead>
+      <div className="acl-table-card">
+        <div className="acl-table-wrap">
+          <table className="acl-table">
+            <thead>
+              <tr>
+                <th>Nombre / Candidato</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Documento</th>
+                <th>Fecha de registro</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {loading ? (
                 <tr>
-                  <th>Candidato</th>
-                  <th>Email</th>
-                  <th>Teléfono</th>
-                  <th>DNI</th>
-                  <th>Registrado</th>
-                  <th className="text-end">Acciones</th>
+                  <td colSpan="6" className="acl-empty">
+                    Cargando candidatos...
+                  </td>
                 </tr>
-              </thead>
+              ) : filteredCandidates.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="acl-empty">
+                    No hay candidatos para mostrar.
+                  </td>
+                </tr>
+              ) : (
+                filteredCandidates.map((candidate) => {
+                  const fullName =
+                    `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() ||
+                    "Sin nombre";
 
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-muted p-4">
-                      No hay candidatos para mostrar.
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((c) => {
-                    const fullName =
-                      `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "—";
-                    const isDownloading = downloadingId === c.id;
+                  const documentLabel =
+                    candidate.document_type || candidate.document_number
+                      ? `${candidate.document_type || "Doc"} · ${
+                          candidate.document_number || "—"
+                        }`
+                      : "—";
 
-                    return (
-                      <tr key={c.id}>
-                        <td className="fw-semibold">{fullName}</td>
-                        <td>{c.email ?? "—"}</td>
-                        <td>{c.phone ?? "—"}</td>
-                        <td>{c.dni ?? "—"}</td>
-                        <td className="text-muted">{fmtDate(c.created_at)}</td>
-
-                        <td className="text-end">
-                          <div className="d-flex justify-content-end gap-2 flex-wrap">
-                            {/* (Opcional) detalle si luego lo creas */}
-                            {/* <Link
-                              to={`/rrhh/candidatos/${c.id}`}
-                              className="btn btn-outline-secondary btn-sm rounded-pill px-3"
-                            >
-                              Ver
-                            </Link> */}
-
-                            <button
-                              className="btn btn-outline-primary btn-sm rounded-pill px-3"
-                              onClick={() => downloadCv(c.id, c.email)}
-                              disabled={isDownloading}
-                              title="Descargar CV"
-                            >
-                              {isDownloading ? "Descargando..." : "Descargar CV"}
-                            </button>
+                  return (
+                    <tr key={candidate.id}>
+                      <td>
+                        <div className="acl-candidate">
+                          <div className="acl-candidate__avatar">
+                            {getInitials(
+                              candidate.first_name,
+                              candidate.last_name,
+                              candidate.email
+                            )}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
 
-          
+                          <div className="acl-candidate__info">
+                            <strong>{fullName}</strong>
+                            <span>
+                              {candidate.headline ||
+                                candidate.city ||
+                                candidate.country
+                                }
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="acl-cell-muted">
+                        {candidate.email || "—"}
+                      </td>
+
+                      <td className="acl-cell-muted">
+                        {candidate.phone || "—"}
+                      </td>
+
+                      <td className="acl-cell-muted">{documentLabel}</td>
+
+                      <td className="acl-cell-muted">
+                        {formatDate(candidate.created_at)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        <div className="acl-footer">
+          <span>
+            Mostrando {filteredCandidates.length}{" "}
+            {filteredCandidates.length === 1 ? "resultado" : "resultados"}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

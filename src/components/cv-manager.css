@@ -1,0 +1,239 @@
+/*===========================================================
+                          CvManager.jsx
+=============================================================*/
+
+.hx-cv-shell h2,
+.hx-cv-shell h3,
+.hx-cv-shell h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2430;
+  margin-bottom: 14px;
+}
+
+.hx-cv-shell p,
+.hx-cv-shell span,
+.hx-cv-shell small,
+.hx-cv-shell label {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.hx-cv-shell .card,
+.hx-cv-shell .cv-card,
+.hx-cv-shell .cv-box {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: none;
+}
+
+.hx-cv-shell button,
+.hx-cv-shell .btn {
+  min-height: 42px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.hx-cv-manager {
+  width: 100%;
+}
+
+.hx-cv-box {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.035);
+}
+
+.hx-cv-box__top {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hx-cv-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hx-cv-file__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hx-cv-file__icon i {
+  font-size: 20px;
+  color: #dc2626;
+}
+
+.hx-cv-file__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.hx-cv-file__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2430;
+}
+
+.hx-cv-text {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.hx-cv-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.hx-cv-actions .hx-btn-secondary,
+.hx-cv-actions .hx-btn-dark-soft {
+  min-width: 0;
+}
+
+.hx-btn-secondary {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #ffffff;
+  color: #1f2430;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.hx-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.22);
+  transform: translateY(-1px);
+}
+
+.hx-btn-dark-soft {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: none;
+  background: #8ac1c1;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow:
+    0 10px 22px rgba(138, 193, 193, 0.28),
+    0 4px 10px rgba(15, 23, 42, 0.06);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.hx-btn-dark-soft:hover {
+  background: #7db6b6;
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 26px rgba(138, 193, 193, 0.34),
+    0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.hx-btn-small {
+  min-height: 34px;
+  font-size: 12.5px;
+  padding: 0 14px;
+}
+
+.hx-cv-upload-block {
+  margin-top: 18px;
+}
+
+.hx-cv-upload-action {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.hx-file-hidden {
+  display: none;
+}
+
+.hx-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.hx-file-trigger {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #ffffff;
+  color: #1f2430;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hx-file-trigger:hover {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.22);
+  transform: translateY(-1px);
+}
+
+.hx-file-name {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .hx-cv-box__top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hx-cv-actions {
+    width: 100%;
+  }
+
+  .hx-btn-secondary,
+  .hx-btn-dark-soft {
+    width: 100%;
+  }
+
+  .hx-cv-upload-action {
+    justify-content: stretch;
+  }
+
+  .hx-cv-upload-action .hx-btn-dark-soft {
+    width: 100%;
+  }
+}

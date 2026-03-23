@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { uploadCv, getCvInfo, downloadCv } from "../services/api";
+import "./cv-manager.css";
 
 export default function CvManager() {
   const [cvInfo, setCvInfo] = useState(null);
@@ -13,9 +14,6 @@ export default function CvManager() {
 
   const fileInputRef = useRef(null);
 
-  // =============================
-  // CARGAR INFO DEL CV
-  // =============================
   useEffect(() => {
     loadCv();
   }, []);
@@ -32,9 +30,6 @@ export default function CvManager() {
     }
   }
 
-  // =============================
-  // SELECCIONAR ARCHIVO
-  // =============================
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     setError("");
@@ -70,9 +65,6 @@ export default function CvManager() {
     }
   }
 
-  // =============================
-  // SUBIR CV (MANUAL)
-  // =============================
   async function handleUpload() {
     if (!selectedFile) {
       setError("Selecciona un PDF antes de subir");
@@ -101,9 +93,6 @@ export default function CvManager() {
     }
   }
 
-  // =============================
-  // DESCARGAR CV
-  // =============================
   async function handleDownload() {
     try {
       await downloadCv();
@@ -112,142 +101,96 @@ export default function CvManager() {
     }
   }
 
-  // =============================
-  // UI
-  // =============================
   return (
-    <div className="card p-4 mt-4 shadow-sm rounded-4">
-      <h5 className="mb-4 fw-bold">Gestión de CV</h5>
+    <div className="hx-cv-manager">
+      <h3 className="hx-profile-box-title">Gestión de CV</h3>
 
       {loading ? (
-        <p>Cargando información...</p>
+        <p className="hx-cv-text">Cargando información...</p>
       ) : (
         <>
-          {/* ============================= */}
-          {/* CV ACTUAL */}
-          {/* ============================= */}
           {cvInfo ? (
-            <div className="mb-4 p-4 bg-white border rounded-4 shadow-sm">
-              <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
-
-                {/* Info */}
-                <div className="d-flex align-items-center gap-3">
-                  <div
-                    className="d-flex align-items-center justify-content-center rounded-3"
-                    style={{
-                      width: 48,
-                      height: 48,
-                      backgroundColor: "#f8f9fa"
-                    }}
-                  >
-                    <i className="bi bi-file-earmark-pdf-fill fs-4 text-danger"></i>
+            <div className="hx-cv-box">
+              <div className="hx-cv-box__top">
+                <div className="hx-cv-file">
+                  <div className="hx-cv-file__icon">
+                    <i className="bi bi-file-earmark-pdf-fill"></i>
                   </div>
 
                   <div>
-                    <div className="d-flex align-items-center gap-2 flex-wrap">
-                      <div className="fw-semibold text-dark">
-                        CV cargado
-                      </div>
+                    <div className="hx-cv-file__title-row">
+                      <span className="hx-cv-file__title">CV cargado</span>
 
-                      <span
-                        className="badge rounded-pill"
-                        style={{
-                          backgroundColor: "#e8fff3",
-                          color: "#0f5132",
-                          border: "1px solid #b7f0d2",
-                          fontWeight: 600
-                        }}
-                      >
-                        <i className="bi bi-check-circle-fill me-1"></i>
-                        Cargado
+                      <span className="">
+                        <i className="bi bi-check-circle-fill"></i>
                       </span>
                     </div>
 
-                    <div className="text-muted small">
+                    <p className="hx-cv-text mb-0">
                       Tu CV está listo para postular
-                    </div>
+                    </p>
                   </div>
                 </div>
 
-                {/* Acciones */}
-                <div className="d-flex align-items-center gap-2">
+                <div className="hx-cv-actions">
                   <button
-                    className="btn btn-outline-dark rounded-pill px-3"
+                    type="button"
+                    className="hx-btn-secondary"
                     onClick={handleDownload}
                     disabled={uploading}
                   >
                     <i className="bi bi-download me-2"></i>
                     Descargar
                   </button>
-
-                  <button
-                    className="btn rounded-pill px-3"
-                    style={{
-                      backgroundColor: "#1f2937",
-                      color: "white"
-                    }}
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    <i className="bi bi-arrow-repeat me-2"></i>
-                    Reemplazar
-                  </button>
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-muted mb-4">Aún no has subido tu CV.</p>
+            <p className="hx-cv-text mb-4">Aún no has subido tu CV.</p>
           )}
 
-          {/* ============================= */}
-          {/* INPUT FILE */}
-          {/* ============================= */}
-          <div className="mb-2">
-            <label className="form-label fw-semibold">
-              Subir nuevo CV (PDF)
-            </label>
+          <div className="hx-cv-upload-block">
+            <label className="hx-label">Subir nuevo CV </label>
 
             <input
+              id="cv-upload-input"
               type="file"
               accept="application/pdf"
-              className="form-control"
+              className="hx-file-hidden"
               onChange={handleFileChange}
               disabled={uploading}
               ref={fileInputRef}
             />
+
+            <div className="hx-file-row">
+              <label htmlFor="cv-upload-input" className="hx-file-trigger">
+                <i className="bi bi-upload me-2"></i>
+                Seleccionar PDF
+              </label>
+
+              
+            </div>
           </div>
 
-          {/* ============================= */}
-          {/* ARCHIVO SELECCIONADO */}
-          {/* ============================= */}
           {selectedFile && (
-            <div className="mt-4 p-4 bg-white border rounded-4 shadow-sm">
-              <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-
-                <div className="d-flex align-items-center gap-3">
-                  <div
-                    className="d-flex align-items-center justify-content-center rounded-3"
-                    style={{
-                      width: 48,
-                      height: 48,
-                      backgroundColor: "#f8f9fa"
-                    }}
-                  >
-                    <i className="bi bi-file-earmark-pdf-fill fs-4 text-danger"></i>
+            <div className="hx-cv-box mt-4">
+              <div className="hx-cv-box__top">
+                <div className="hx-cv-file">
+                  <div className="hx-cv-file__icon">
+                    <i className="bi bi-file-earmark-pdf-fill"></i>
                   </div>
 
                   <div>
-                    <div className="fw-semibold text-dark">
-                      {selectedFile.name}
-                    </div>
-                    <div className="text-muted small">
+                    <div className="hx-cv-file__title">{selectedFile.name}</div>
+                    <p className="hx-cv-text mb-0">
                       {(selectedFile.size / 1024).toFixed(1)} KB • PDF
-                    </div>
+                    </p>
                   </div>
                 </div>
 
                 <button
-                  className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                  type="button"
+                  className="hx-btn-secondary hx-btn-small"
                   onClick={handleRemoveFile}
                   disabled={uploading}
                 >
@@ -255,13 +198,10 @@ export default function CvManager() {
                 </button>
               </div>
 
-              <div className="mt-4 text-end">
+              <div className="hx-cv-upload-action">
                 <button
-                  className="btn rounded-pill px-4"
-                  style={{
-                    backgroundColor: "#1f2937",
-                    color: "white"
-                  }}
+                  type="button"
+                  className="hx-btn-dark-soft"
                   onClick={handleUpload}
                   disabled={uploading}
                 >

@@ -1,17 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useEffect, useRef, useState } from "react";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
 
   const role = (user?.role || "").trim().toUpperCase();
-
-  function handleLogout() {
-    logout();
-    nav("/");
-  }
-
   const isAdmin = role === "ADMIN";
   const isRRHH = role === "RRHH";
   const isCandidate = role === "CANDIDATE";
@@ -19,149 +14,159 @@ export default function Navbar() {
   const profileIncomplete =
     isCandidate && user?.profile_complete === false;
 
-  return (
-    <nav className="navbar navbar-expand-lg border-bottom bg-white">
-      <div className="container">
-        {/* Logo */}
-        <Link className="navbar-brand fw-bold" to="/">
-          Humantyx Jobs
-        </Link>
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
-        <div className="d-flex align-items-center gap-2 flex-wrap">
-          {/* Público */}
-          <Link to="/empleos" className="btn btn-link text-decoration-none">
-            Buscar empleos
+  function handleLogout() {
+    logout();
+    setMenuOpen(false);
+    nav("/");
+  }
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+
+    function handleEscape(e) {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  return (
+    <nav className="hx-navbar border-bottom">
+      <div className="container">
+        <div className="hx-navbar__inner">
+          <Link className="navbar-brand" to="/">
+            <img
+              src="/logo-humantyx-jobs.png"
+              alt="Humantyx Jobs"
+              style={{ height: 38, width: "auto" }}
+            />
           </Link>
 
-          {/* NO logueado */}
-          {!user && (
-            <>
-              <Link
-                to="/login"
-                className="btn btn-outline-dark rounded-pill px-3"
-              >
-                Ingresar
-              </Link>
-              <Link
-                to="/register"
-                className="btn btn-dark rounded-pill px-3"
-              >
-                Crear cuenta
-              </Link>
-            </>
-          )}
+          <div className="hx-navbar__links"></div>
 
-          {/* CANDIDATE */}
-          {user && isCandidate && (
-            <>
-              <Link
-                to="/mi-perfil"
-                className="btn btn-outline-dark rounded-pill px-3"
-              >
-                Mi perfil
-              </Link>
+          <div className="hx-navbar__actions">
+            {!user && (
+              <div className="hx-navbar__guest-links">
+                  <Link to="/login" className="hx-navbar__guest-link hx-navbar__guest-link--primary">
+                    Ingresar
+                  </Link>
 
-              {/* Deshabilitado si perfil incompleto */}
-              {profileIncomplete ? (
+                  <span className="hx-navbar__guest-divider"></span>
+
+                  <Link to="/register" className="hx-navbar__guest-link">
+                    Crear cuenta
+                  </Link>
+              </div>
+            )}
+
+            {user && (
+              <div className="hx-user-menu" ref={menuRef}>
                 <button
-                  className="btn btn-outline-secondary rounded-pill px-3"
-                  disabled
-                  title="Completa tu perfil para acceder a tus postulaciones"
-                  style={{ cursor: "not-allowed" }}
+                  type="button"
+                  className="hx-user-menu__trigger"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="Abrir menú de usuario"
                 >
-                  Mis postulaciones
+                  <i className="bi bi-person-fill"></i>
                 </button>
-              ) : (
-                <Link
-                  to="/mis-postulaciones"
-                  className="btn btn-outline-dark rounded-pill px-3"
-                >
-                  Mis postulaciones
-                </Link>
-              )}
 
-              <button
-                onClick={handleLogout}
-                className="btn btn-dark rounded-pill px-3"
-              >
-                Salir
-              </button>
-            </>
-          )}
+                {menuOpen && (
+                  <div className="hx-user-menu__dropdown">
+                    <div className="hx-user-menu__header">
+                      <strong>{user?.email || "Usuario"}</strong>
+                    </div>
 
-          {/* RRHH */}
-          {user && isRRHH && (
-            <>
-              <Link
-                to="/rrhh/vacantes"
-                className="btn btn-outline-primary rounded-pill px-3"
-              >
-                Panel RRHH
-              </Link>
+                    <div className="hx-user-menu__list">
+                      {isCandidate && (
+                        <>
+                          <Link
+                            to="/mi-perfil"
+                            className="hx-user-menu__item"
+                            onClick={() => setMenuOpen(false)}
+                          >
+                            <i className="bi bi-person-circle"></i>
+                            <span>Mi perfil</span>
+                          </Link>
 
-              <Link
-                to="/rrhh/candidatos"
-                className="btn btn-outline-dark rounded-pill px-3"
-              >
-                Candidatos
-              </Link>
+                          {profileIncomplete ? (
+                            <button
+                              type="button"
+                              className="hx-user-menu__item is-disabled"
+                              disabled
+                              title="Completa tu perfil para acceder a tus postulaciones"
+                            >
+                              <i className="bi bi-briefcase"></i>
+                              <span>Mis postulaciones</span>
+                            </button>
+                          ) : (
+                            <Link
+                              to="/mis-postulaciones"
+                              className="hx-user-menu__item"
+                              onClick={() => setMenuOpen(false)}
+                            >
+                              <i className="bi bi-briefcase-fill"></i>
+                              <span>Mis postulaciones</span>
+                            </Link>
+                          )}
+                        </>
+                      )}
 
-              <button
-                onClick={handleLogout}
-                className="btn btn-dark rounded-pill px-3"
-              >
-                Salir
-              </button>
-            </>
-          )}
+                      {(isRRHH || isAdmin) && (
+                        <>
+                          <Link
+                            to="/rrhh/vacantes"
+                            className="hx-user-menu__item"
+                            onClick={() => setMenuOpen(false)}
+                          >
+                            <i className="bi bi-speedometer2"></i>
+                            <span>Panel de control</span>
+                          </Link>
 
-          {/* ADMIN */}
-          {user && isAdmin && (
-            <>
-              <Link
-                to="/rrhh/vacantes"
-                className="btn btn-outline-primary rounded-pill px-3"
-              >
-                Panel RRHH
-              </Link>
+                          
+                        </>
+                      )}
 
-              <Link
-                to="/rrhh/candidatos"
-                className="btn btn-outline-dark rounded-pill px-3"
-              >
-                Candidatos
-              </Link>
+                      {!isCandidate && !isRRHH && !isAdmin && (
+                        <Link
+                          to="/"
+                          className="hx-user-menu__item"
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <i className="bi bi-house-door"></i>
+                          <span>Inicio</span>
+                        </Link>
+                      )}
+                    </div>
 
-              <Link
-                to="/rrhh/invitar"
-                className="btn btn-outline-success rounded-pill px-3"
-              >
-                Invitar usuario
-              </Link>
-
-              <button
-                onClick={handleLogout}
-                className="btn btn-dark rounded-pill px-3"
-              >
-                Salir
-              </button>
-            </>
-          )}
-
-          {/* Fallback */}
-          {user && !isCandidate && !isRRHH && !isAdmin && (
-            <>
-              <span className="text-muted small">
-                {user?.email || "Usuario"} ({role || "SIN ROL"})
-              </span>
-              <button
-                onClick={handleLogout}
-                className="btn btn-dark rounded-pill px-3"
-              >
-                Salir
-              </button>
-            </>
-          )}
+                    <div className="hx-user-menu__footer">
+                      <button
+                        type="button"
+                        className="hx-user-menu__logout"
+                        onClick={handleLogout}
+                      >
+                        Salir
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>
