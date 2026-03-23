@@ -19,135 +19,69 @@ export default function Home() {
     nav(`/empleos${params.toString() ? `?${params.toString()}` : ""}`);
   }
 
-  const humantyx = "#6EC6C4";
-
   return (
-    <div
-      style={{
-        background:
-          "radial-gradient(900px 420px at 50% 18%, rgba(110,198,196,0.20), transparent 62%), radial-gradient(900px 420px at 75% 5%, rgba(53,87,212,0.12), transparent 60%)",
-      }}
-    >
-      <div className="container py-5">
-        <div
-          className="text-center"
-          style={{ maxWidth: 900, margin: "0 auto" }}
-        >
-          <h1
-            className="fw-bold"
-            style={{
-              fontSize: "clamp(2rem,4vw,3.3rem)",
-              lineHeight: 1.1,
-            }}
-          >
+    <section className="home-hero">
+      <div className="container home-hero__container">
+        <div className="home-hero__content">
+          <h1 className="home-hero__title">
             Encuentra tu próximo empleo con una experiencia{" "}
-            <span style={{ color: humantyx }}>simple</span>
-            {" "}y{" "}
-            <span style={{ color: humantyx }}>profesional</span>.
+            <span className="home-accent-2">simple</span> y{" "}
+            <span className="home-accent-2">profesional</span>.
           </h1>
 
-          <p className="text-muted mt-4">
-            Busca las mejores oportunidades y postula en minutos.
-            Un portal moderno, claro y centrado en el talento.
+          <p className="home-hero__subtitle">
+            Busca las mejores oportunidades y postula en minutos. Un portal
+            moderno, claro y centrado en el talento.
           </p>
 
-          <form
-            onSubmit={onSearch}
-            className="mx-auto"
-            style={{
-              marginTop: "80px",
-              maxWidth: 850,
-              borderRadius: 999,
-              border: "1px solid rgba(0,0,0,0.15)",
-              background: "white",
-              boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
-              overflow: "hidden",
-            }}
-          >
-            <div className="d-flex align-items-stretch">
-              <div
-                className="d-flex align-items-center flex-grow-1 px-3"
-                style={{ gap: 10 }}
-              >
-                <i
-                  className="bi bi-search"
-                  style={{ fontSize: 18, color: "#6c757d" }}
-                ></i>
+          <form onSubmit={onSearch} className="home-searchbar">
+            <div className="home-searchbar-inner">
+              <div className="home-field">
+                <span className="home-icon" aria-hidden="true">
+                  <i className="bi bi-search"></i>
+                </span>
 
                 <input
-                  className="form-control border-0 shadow-none"
+                  type="text"
+                  className="home-input"
                   placeholder="Cargo, palabras clave..."
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                 />
               </div>
 
-              <div
-                style={{
-                  width: 1,
-                  background: "rgba(0,0,0,0.12)",
-                }}
-              ></div>
+              <div className="home-divider"></div>
 
-              <div
-                className="d-flex align-items-center flex-grow-1 px-3"
-                style={{ gap: 10 }}
-              >
-                <i
-                  className="bi bi-geo-alt"
-                  style={{ fontSize: 18, color: "#6c757d" }}
-                ></i>
+              <div className="home-field">
+                <span className="home-icon" aria-hidden="true">
+                  <i className="bi bi-geo-alt"></i>
+                </span>
 
                 <input
-                  className="form-control border-0 shadow-none"
+                  type="text"
+                  className="home-input"
                   placeholder="Ciudad o región"
                   value={loc}
                   onChange={(e) => setLoc(e.target.value)}
                 />
               </div>
 
-              <div className="p-2">
-                <button
-                  type="submit"
-                  className="btn fw-semibold"
-                  style={{
-                    background: humantyx,
-                    color: "white",
-                    borderRadius: 999,
-                    padding: "12px 22px",
-                    minWidth: 130,
-                  }}
-                >
+              <div className="home-searchbar-action">
+                <button type="submit" className="home-cta home-cta--search">
                   Buscar
                 </button>
               </div>
             </div>
           </form>
 
-          <div className="mt-5 pt-1">
-            <Link
-              to="/empleos"
-              className="btn fw-semibold"
-              style={{
-                background: humantyx,
-                color: "white",
-                borderRadius: 14,
-                padding: "12px 28px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 10,
-                boxShadow: "0 10px 18px rgba(110,198,196,0.35)",
-              }}
-            >
-              Empleos
-              <i
-                className="bi bi-arrow-right"
-                style={{ fontSize: 18 }}
-              ></i>
+          <div className="home-hero__actions">
+            <Link to="/empleos" className="home-cta home-cta--jobs">
+              <span>Empleos</span>
+              <i className="bi bi-arrow-right"></i>
             </Link>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

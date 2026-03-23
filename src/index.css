@@ -216,7 +216,6 @@ body {
 
 .hx-user-menu {
   position: relative;
-  z-index: 3002;
 }
 
 .hx-user-menu__trigger {
@@ -248,7 +247,7 @@ body {
   border-radius: 18px;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
   overflow: hidden;
-  z-index: 4000;
+  z-index: 1000;
 }
 
 .hx-user-menu__header {

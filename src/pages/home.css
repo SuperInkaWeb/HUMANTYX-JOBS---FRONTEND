@@ -1,114 +1,220 @@
 /* ============================= */
-/* HERO HOME HUMANTYX */
+/* VARIABLES */
 /* ============================= */
 
-.home-hero{
+:root {
+  --hx-primary: #6FAEB2;
+  --hx-primary-dark: #5f9ea2;
+  --hx-primary-soft: #e8f4f5;
+
+  --hx-text-main: #0f172a;
+  --hx-text-secondary: #64748b;
+  --hx-text-soft: #94a3b8;
+
+  --hx-bg-main: #ffffff;
+  --hx-bg-soft: #f8fafc;
+
+  --hx-border: rgba(15, 23, 42, 0.08);
+}
+
+/* ============================= */
+/* HERO */
+/* ============================= */
+
+.home-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: calc(100vh - 78px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--hx-bg-main);
+}
+
+.home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background:
-    radial-gradient(900px 280px at 50% 15%, rgba(110, 201, 198, 0.20), rgba(255,255,255,0) 60%),
-    radial-gradient(900px 300px at 85% 15%, rgba(77, 121, 255, 0.12), rgba(255,255,255,0) 55%),
-    #fff;
-}
-
-/* palabras resaltadas */
-
-.home-accent{
-  color:#4d79ff;
-}
-
-.home-accent-2{
-  color:#6EC9C6;
+    radial-gradient(500px 200px at 50% 0%, rgba(111,174,178,0.10), transparent 70%);
 }
 
 /* ============================= */
-/* BUSCADOR TIPO INDEED */
+/* CONTENIDO */
 /* ============================= */
 
-.home-searchbar{
-  max-width:840px;
+.home-hero__container {
+  width: 100%;
+  padding-top: clamp(54px, 6vw, 84px);
+  padding-bottom: 72px;
 }
 
-.home-searchbar-inner{
-  display:flex;
-  align-items:center;
-  gap:0;
-  padding:10px;
-  border:1px solid rgba(0,0,0,0.12);
-  border-radius:999px;
-  background:#fff;
-  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+.home-hero__content {
+  max-width: 920px;
+  margin: 0 auto;
+  text-align: center;
 }
 
-.home-field{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:10px 14px;
-  flex:1;
-  min-width:0;
+.home-hero__title {
+  margin: 0 auto;
+  max-width: 780px;
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--hx-text-main);
 }
 
-.home-icon{
-  color:rgba(0,0,0,0.55);
-  display:inline-flex;
+.home-hero__subtitle {
+  max-width: 640px;
+  margin: 18px auto 0;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--hx-text-secondary);
 }
 
-.home-input{
-  width:100%;
-  border:0;
-  outline:none;
-  font-size:16px;
-  background:transparent;
-}
+/* acentos */
 
-.home-input::placeholder{
-  color:rgba(0,0,0,0.45);
-}
-
-.home-divider{
-  width:1px;
-  align-self:stretch;
-  background:rgba(0,0,0,0.12);
+.home-accent-2 {
+  color: var(--hx-primary);
+  font-weight: 800;
 }
 
 /* ============================= */
-/* BOTON HUMANTYX */
+/* BUSCADOR */
 /* ============================= */
 
-.home-cta{
-  border:0;
-  border-radius:999px;
-  padding:12px 18px;
-  font-weight:700;
-  color:#fff;
-  background:linear-gradient(90deg,#6EC9C6,#41AAA6);
-  box-shadow:0 10px 22px rgba(65,170,166,0.25);
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  white-space:nowrap;
+.home-searchbar {
+  max-width: 760px;
+  margin: 40px auto 0;
 }
 
-.home-cta:disabled{
-  opacity:0.65;
-  cursor:not-allowed;
-  box-shadow:none;
+.home-searchbar-inner {
+  display: flex;
+  align-items: stretch;
+  padding: 8px;
+  border: 1px solid var(--hx-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+.home-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  flex: 1;
+  min-height: 60px;
+}
+
+.home-icon {
+  color: var(--hx-text-soft);
+  font-size: 1.1rem;
+}
+
+.home-input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  font-size: 14px;
+  color: var(--hx-text-main);
+  background: transparent;
+}
+
+.home-divider {
+  width: 1px;
+  background: var(--hx-border);
+}
+
+.home-searchbar-action {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+/* ============================= */
+/* BOTONES */
+/* ============================= */
+
+.home-cta {
+  border: 0;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.home-cta:hover {
+  transform: translateY(-1px);
+}
+
+/* botón buscar */
+
+.home-cta--search {
+  min-width: 130px;
+  min-height: 48px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--hx-primary);
+}
+
+.home-cta--search:hover {
+  background: var(--hx-primary-dark);
+}
+
+/* botón empleos */
+
+.home-hero__actions {
+  margin-top: 30px;
+}
+
+.home-cta--jobs {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--hx-primary);
+}
+
+.home-cta--jobs i {
+  font-size: 14px;
 }
 
 /* ============================= */
 /* RESPONSIVE */
 /* ============================= */
 
-@media (max-width:768px){
-
-  .home-searchbar-inner{
-    border-radius:24px;
-    flex-direction:column;
-    align-items:stretch;
+@media (max-width: 768px) {
+  .home-hero__title {
+    font-size: 2rem;
   }
 
-  .home-divider{
-    width:100%;
-    height:1px;
+  .home-searchbar-inner {
+    flex-direction: column;
   }
 
+  .home-divider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .home-cta--search {
+    width: 100%;
+  }
+}
+
+
+.home-cta--jobs {
+  text-decoration: none;
+  color: white;
+}
+
+.home-cta--jobs:hover {
+  text-decoration: none;
+  color: white;
 }

@@ -46,16 +46,13 @@ export default function JobsList() {
     onResetMessages: resetApplyMessages,
   });
 
-  const {
-    selectedJob,
-    loadingDetail,
-  } = useJobDetail({
+  const { selectedJob, loadingDetail } = useJobDetail({
     selectedId,
     onResetMessages: resetApplyMessages,
   });
 
   return (
-    <div className="jobs-page">
+    <section className="jobs-page">
       <div className="jobs-shell">
         <JobsSearchBar
           keyword={keyword}
@@ -78,7 +75,7 @@ export default function JobsList() {
         />
 
         <div className="jobs-board">
-          <div className="jobs-board__left">
+          <aside className="jobs-board__left">
             <JobsListPanel
               error={error}
               loadingList={loadingList}
@@ -86,9 +83,9 @@ export default function JobsList() {
               selectedId={selectedId}
               onSelectJob={setSelectedId}
             />
-          </div>
+          </aside>
 
-          <div className="jobs-board__right">
+          <section className="jobs-board__right">
             <JobDetailPanel
               selectedId={selectedId}
               loadingDetail={loadingDetail}
@@ -98,9 +95,9 @@ export default function JobsList() {
               applySuccess={applySuccess}
               onApply={() => handleApply(selectedJob)}
             />
-          </div>
+          </section>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
