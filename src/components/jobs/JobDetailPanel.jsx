@@ -2,7 +2,13 @@ import JobDetailHeader from "./JobDetailHeader";
 import JobInfoList from "./JobInfoList";
 
 function renderDescription(description) {
-  if (!description) return "Sin descripción por ahora.";
+  if (!description) {
+    return (
+      <p className="job-detail-panel__paragraph">
+        Sin descripción por ahora.
+      </p>
+    );
+  }
 
   return description.split("\n").map((line, index) => {
     const trimmed = line.trim();
@@ -59,14 +65,18 @@ export default function JobDetailPanel({
 
           <div className="job-detail-panel__section">
             <div className="job-detail-panel__section-label">
-              DATOS DE LA VACANTE
+              Datos de la vacante
             </div>
+
             <JobInfoList selectedJob={selectedJob} />
           </div>
 
-          <div className="job-detail-panel__section">
-            <div className="job-detail-panel__section-label">
-              DESCRIPCIÓN COMPLETA DEL PUESTO
+          <div className="job-detail-panel__section job-detail-panel__section--description">
+            <div className="job-detail-panel__description-title-wrap">
+              <span className="job-detail-panel__description-accent"></span>
+              <div className="job-detail-panel__description-title">
+                Descripción del puesto
+              </div>
             </div>
 
             <div className="job-detail-panel__description">

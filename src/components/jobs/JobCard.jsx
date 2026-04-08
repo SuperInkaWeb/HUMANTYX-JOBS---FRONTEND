@@ -45,14 +45,18 @@ export default function JobCard({ job, active, onSelect }) {
         ) : null}
       </div>
 
-      {job.salary_range ? (
-        <div className="jobs-card__salary">
-          <i className="bi bi-cash-stack"></i>
-          <span>{job.salary_range}</span>
-        </div>
-      ) : null}
+      <div className="jobs-card__bottom">
+        {job.salary_range ? (
+          <div className="jobs-card__salary">
+            <i className="bi bi-cash-stack"></i>
+            <span>{job.salary_range}</span>
+          </div>
+        ) : (
+          <div />
+        )}
 
-      {postedText ? <div className="jobs-card__time">{postedText}</div> : null}
+        {postedText ? <div className="jobs-card__time">{postedText}</div> : null}
+      </div>
     </button>
   );
 }

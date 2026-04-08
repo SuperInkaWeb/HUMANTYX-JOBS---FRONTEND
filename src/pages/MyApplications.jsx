@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiFetch } from "../services/api";
+import {
+  apiFetch,
+  getCandidateApplicationMessages,
+  replyCandidateApplicationMessage,
+} from "../services/api";
+import ApplicationMessagesModal from "../components/messages/ApplicationMessagesModal";
 import "./my-applications.css";
 
 function formatDate(dateString) {
@@ -32,36 +37,125 @@ function StatusBadge({ status }) {
   return <span className={`myapps-status ${current.cls}`}>{current.label}</span>;
 }
 
+function getJobIconClass() {
+  return "bi bi-briefcase";
+}
+
+function getUnreadCount(value) {
+  return Number(value) || 0;
+}
+
+function getCandidateChatButtonLabel(row) {
+  if (!row?.has_conversation) return "";
+  return "Ver chat";
+}
+
 export default function MyApplications() {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesSending, setMessagesSending] = useState(false);
+  const [messagesError, setMessagesError] = useState("");
+  const [selectedApplicationForMessages, setSelectedApplicationForMessages] =
+    useState(null);
+  const [messagesConversation, setMessagesConversation] = useState(null);
+  const [messagesList, setMessagesList] = useState([]);
+  const [messagesPermissions, setMessagesPermissions] = useState({
+    can_reply: false,
+  });
+  const [messagesApplicationInfo, setMessagesApplicationInfo] = useState(null);
 
-        const data = await apiFetch("/candidate/applications");
+  const loadApplications = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.applications)
-          ? data.applications
-          : Array.isArray(data?.apps)
-          ? data.apps
-          : [];
+      const data = await apiFetch("/candidate/applications");
 
-        setApps(list);
-      } catch (e) {
-        setError(e.message || "Ocurrió un error cargando tus postulaciones.");
-      } finally {
-        setLoading(false);
-      }
-    })();
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.applications)
+        ? data.applications
+        : Array.isArray(data?.apps)
+        ? data.apps
+        : [];
+
+      setApps(list);
+    } catch (e) {
+      setError(e.message || "Ocurrió un error cargando tus postulaciones.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadApplications();
+  }, [loadApplications]);
+
+  async function loadCandidateMessages(applicationId) {
+    setMessagesLoading(true);
+    setMessagesError("");
+
+    try {
+      const data = await getCandidateApplicationMessages(applicationId);
+
+      setMessagesConversation(data.conversation || null);
+      setMessagesList(Array.isArray(data.messages) ? data.messages : []);
+      setMessagesPermissions(data.permissions || { can_reply: false });
+      setMessagesApplicationInfo(data.application || null);
+    } catch (err) {
+      setMessagesError(err.message || "No se pudieron cargar los mensajes");
+      setMessagesConversation(null);
+      setMessagesList([]);
+      setMessagesPermissions({ can_reply: false });
+      setMessagesApplicationInfo(null);
+    } finally {
+      setMessagesLoading(false);
+    }
+  }
+
+  async function handleOpenMessages(applicationRow) {
+    setSelectedApplicationForMessages(applicationRow);
+    setShowMessagesModal(true);
+
+    await loadCandidateMessages(applicationRow.id);
+    await loadApplications();
+  }
+
+  function handleCloseMessages() {
+    setShowMessagesModal(false);
+    setMessagesError("");
+    setMessagesConversation(null);
+    setMessagesList([]);
+    setMessagesPermissions({ can_reply: false });
+    setMessagesApplicationInfo(null);
+    setSelectedApplicationForMessages(null);
+  }
+
+  async function handleReplyMessage(messageText) {
+    if (!selectedApplicationForMessages?.id) return;
+
+    setMessagesSending(true);
+    setMessagesError("");
+
+    try {
+      await replyCandidateApplicationMessage(
+        selectedApplicationForMessages.id,
+        messageText
+      );
+
+      await loadCandidateMessages(selectedApplicationForMessages.id);
+      await loadApplications();
+    } catch (err) {
+      setMessagesError(err.message || "No se pudo enviar la respuesta");
+    } finally {
+      setMessagesSending(false);
+    }
+  }
 
   const counts = useMemo(() => {
     return {
@@ -90,133 +184,167 @@ export default function MyApplications() {
 
   return (
     <section className="myapps-page">
-      <div className="container py-4 py-lg-5">
-        <div className="myapps-wrap">
-          <div className="myapps-board">
-            <div className="myapps-board__header">
-              <div className="myapps-board__intro">
-                <h1 className="myapps-board__title">Mis postulaciones</h1>
-              </div>
-
-
-            </div>
-
-            <div className="myapps-tabs">
-              <button
-                type="button"
-                className={`myapps-tab ${activeTab === "all" ? "active" : ""}`}
-                onClick={() => setActiveTab("all")}
-              >
-                Todos
-                <span>{counts.all}</span>
-              </button>
-
-              <button
-                type="button"
-                className={`myapps-tab ${activeTab === "applied" ? "active" : ""}`}
-                onClick={() => setActiveTab("applied")}
-              >
-                Postulados
-                <span>{counts.applied}</span>
-              </button>
-
-              <button
-                type="button"
-                className={`myapps-tab ${activeTab === "review" ? "active" : ""}`}
-                onClick={() => setActiveTab("review")}
-              >
-                En revisión
-                <span>{counts.review}</span>
-              </button>
-
-            </div>
-
-            {loading && (
-              <div className="myapps-feedback">Cargando postulaciones...</div>
-            )}
-
-            {error && <div className="alert alert-danger m-0">{error}</div>}
-
-            {!loading && !error && (
-              <>
-                {filteredApps.length === 0 ? (
-                  <div className="myapps-empty">
-                    <div className="myapps-empty__icon">
-                      <i className="bi bi-briefcase"></i>
-                    </div>
-
-                    <h3 className="myapps-empty__title">
-                      No hay postulaciones en esta sección
-                    </h3>
-
-                    <p className="myapps-empty__text">
-                      Explora nuevas oportunidades y encuentra vacantes que se
-                      ajusten a tu perfil.
-                    </p>
-
-                    <Link to="/empleos" className="myapps-btn-primary">
-                      Ir a buscar empleos
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="myapps-job-list">
-                    {filteredApps.map((a) => {
-                      const jobId = a.job_id || a.jobId;
-                      const title = a.title || a.job_title || "Sin título";
-                      const location =
-                        a.location || a.job_location || "Ubicación no especificada";
-                      const salary = a.salary_range || "Salario no especificado";
-                      const employmentType =
-                        a.employment_type || "Modalidad no especificada";
-                      const appliedAt = formatDate(a.created_at);
-
-                      return (
-                        <article key={a.id} className="myapps-row">
-                          <div className="myapps-row__main">
-                            <div className="myapps-row__top">
-                              <div className="myapps-row__info">
-                                <h2 className="myapps-row__title">{title}</h2>
-
-                                <div className="myapps-row__meta">
-                                  <span>{location}</span>
-                                  <span>{employmentType}</span>
-                                  <span>{salary}</span>
-                                </div>
-
-                                <div className="myapps-row__date">
-                                  Postulaste el <strong>{appliedAt}</strong>
-                                </div>
-                              </div>
-
-                              <div className="myapps-row__side">
-                                <StatusBadge status={a.status} />
-
-                                {jobId ? (
-                                  <Link
-                                    to={`/empleos/${jobId}`}
-                                    state={{ application: a }}
-                                    className="myapps-btn-ghost"
-                                  >
-                                    Ver empleo
-                                  </Link>
-                                ) : (
-                                  <span className="myapps-row__unavailable">
-                                    Empleo no disponible
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+      <div className="myapps-shell">
+        <div className="myapps-header">
+          <h1 className="myapps-title">Mis postulaciones</h1>
+          <p className="myapps-subtitle">
+            Gestiona y realiza el seguimiento de tus solicitudes de empleo.
+          </p>
         </div>
+
+        <div className="myapps-tabs">
+          <button
+            type="button"
+            className={`myapps-tab ${activeTab === "all" ? "active" : ""}`}
+            onClick={() => setActiveTab("all")}
+          >
+            Todos ({counts.all})
+          </button>
+
+          <button
+            type="button"
+            className={`myapps-tab ${activeTab === "applied" ? "active" : ""}`}
+            onClick={() => setActiveTab("applied")}
+          >
+            Postulados ({counts.applied})
+          </button>
+
+          <button
+            type="button"
+            className={`myapps-tab ${activeTab === "review" ? "active" : ""}`}
+            onClick={() => setActiveTab("review")}
+          >
+            En revisión ({counts.review})
+          </button>
+        </div>
+
+        {loading && <div className="myapps-feedback">Cargando postulaciones...</div>}
+
+        {error && <div className="alert alert-danger">{error}</div>}
+
+        {!loading && !error && (
+          <>
+            {filteredApps.length === 0 ? (
+              <div className="myapps-empty">
+                <div className="myapps-empty__icon">
+                  <i className="bi bi-briefcase"></i>
+                </div>
+
+                <h3 className="myapps-empty__title">
+                  No hay postulaciones en esta sección
+                </h3>
+
+                <p className="myapps-empty__text">
+                  Explora nuevas oportunidades y encuentra vacantes que se ajusten
+                  a tu perfil.
+                </p>
+
+                <Link to="/empleos" className="myapps-btn-primary">
+                  Ir a buscar empleos
+                </Link>
+              </div>
+            ) : (
+              <div className="myapps-list">
+                {filteredApps.map((a) => {
+                  const jobId = a.job_id || a.jobId;
+                  const title = a.title || a.job_title || "Sin título";
+                  const location =
+                    a.location || a.job_location || "Ubicación no especificada";
+                  const salary = a.salary_range || "Salario no especificado";
+                  const employmentType =
+                    a.employment_type || "Modalidad no especificada";
+                  const appliedAt = formatDate(a.created_at);
+                  const unreadCount = getUnreadCount(a.unread_messages_count);
+
+                  return (
+                    <article key={a.id} className="myapps-card">
+                      <div className="myapps-card__accent"></div>
+
+                      <div className="myapps-card__icon">
+                        <i className={getJobIconClass(title)}></i>
+                      </div>
+
+                      <div className="myapps-card__body">
+                        <h2 className="myapps-card__title">{title}</h2>
+
+                        <div className="myapps-card__meta">
+                          <span>
+                            <i className="bi bi-geo-alt-fill"></i>
+                            {location}
+                          </span>
+
+                          <span>
+                            <i className="bi bi-briefcase-fill"></i>
+                            {employmentType}
+                          </span>
+
+                          <span>
+                            <i className="bi bi-cash-stack"></i>
+                            {salary}
+                          </span>
+                        </div>
+
+                        <div className="myapps-card__date">
+                          Postulaste el {appliedAt}
+                        </div>
+                      </div>
+
+                      <div className="myapps-card__actions">
+                        <StatusBadge status={a.status} />
+
+                        {a.has_conversation ? (
+                          <button
+                            type="button"
+                            className="myapps-chat-btn"
+                            onClick={() => handleOpenMessages(a)}
+                          >
+                            <span>{getCandidateChatButtonLabel(a)}</span>
+
+                            {unreadCount > 0 ? (
+                              <span className="myapps-chat-badge">
+                                {unreadCount}
+                              </span>
+                            ) : null}
+                          </button>
+                        ) : null}
+
+                        {jobId ? (
+                          <Link
+                            to={`/empleos/${jobId}`}
+                            state={{ application: a }}
+                            className="myapps-btn-view"
+                          >
+                            Ver empleo
+                          </Link>
+                        ) : (
+                          <span className="myapps-card__unavailable">
+                            Empleo no disponible
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
+
+      <ApplicationMessagesModal
+        show={showMessagesModal}
+        mode="candidate"
+        title="Mensajes de tu postulación"
+        application={messagesApplicationInfo}
+        conversation={messagesConversation}
+        messages={messagesList}
+        canSend={!!messagesPermissions?.can_reply}
+        loading={messagesLoading}
+        sending={messagesSending}
+        error={messagesError}
+        onClose={handleCloseMessages}
+        onSend={handleReplyMessage}
+      />
     </section>
   );
 }

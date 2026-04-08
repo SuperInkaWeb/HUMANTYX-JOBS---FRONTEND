@@ -1,8 +1,25 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+:root {
+  --myapps-primary: #67acc0;
+  --myapps-primary-dark: #4b99b0;
+  --myapps-title: #0f172a;
+  --myapps-body: #64748b;
+  --myapps-meta: #475569;
+  --myapps-time: #94a3b8;
+  --myapps-bg: #f8fafb;
+  --myapps-card: #ffffff;
+  --myapps-badge-bg: #e0f2f6;
+  --myapps-border: rgba(15, 23, 42, 0.08);
+  --myapps-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
 .hx-admin-jobs-v2 {
   display: flex;
   flex-direction: column;
-  gap: 28px ;
+  gap: 28px;
   padding: 28px 32px 40px;
+  font-family: "Manrope", "Inter", system-ui, -apple-system, sans-serif;
 }
 
 .hx-admin-jobs-v2__header {
@@ -15,16 +32,16 @@
 
 .hx-admin-jobs-v2__title {
   margin: 0;
-  color: #12182b;
+  color: var(--myapps-title);
   font-size: clamp(2.15rem, 3vw, 2.95rem);
   line-height: 1.04;
   letter-spacing: -0.035em;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .hx-admin-jobs-v2__subtitle {
   margin: 10px 0 0;
-  color: #707a8f;
+  color: var(--myapps-body);
   font-size: 0.98rem;
   line-height: 1.55;
   font-weight: 400;
@@ -34,24 +51,24 @@
   min-height: 48px;
   padding: 0 22px;
   border-radius: 14px;
-  background: #9fc1ba;
-  color: #fff;
+  background: linear-gradient(180deg, #7ab8ca 0%, var(--myapps-primary) 100%);
+  color: #ffffff;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  font-weight: 500;
-  font-size: 0.98rem;
+  font-weight: 700;
+  font-size: 0.96rem;
   letter-spacing: -0.01em;
-  box-shadow: 0 10px 24px rgba(140, 183, 178, 0.18);
+  box-shadow: 0 10px 22px rgba(103, 172, 192, 0.18);
   transition: all 0.2s ease;
 }
 
 .hx-admin-jobs-v2__new-btn:hover {
-  color: #fff;
-  background:#8eb4ad;;
+  color: #ffffff;
+  background: linear-gradient(180deg, #70b0c5 0%, var(--myapps-primary-dark) 100%);
   transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(140, 183, 178, 0.24);
+  box-shadow: 0 14px 28px rgba(103, 172, 192, 0.24);
 }
 
 .hx-admin-jobs-v2__stats {
@@ -61,16 +78,16 @@
 }
 
 .hx-admin-jobs-v2__stat-card {
-  background: #fff;
-  border: 1px solid #e7ebf2;
+  background: var(--myapps-card);
+  border: 1px solid var(--myapps-border);
   border-radius: 18px;
   padding: 22px 20px;
-  box-shadow: 0 6px 14px rgba(18, 26, 52, 0.04);
+  box-shadow: var(--myapps-shadow);
 }
 
 .hx-admin-jobs-v2__stat-label {
   display: block;
-  color: #7c869c;
+  color: var(--myapps-body);
   font-size: 0.88rem;
   font-weight: 500;
   margin-bottom: 12px;
@@ -78,53 +95,48 @@
 }
 
 .hx-admin-jobs-v2__stat-value {
-  color: #141b34;
+  color: var(--myapps-title);
   font-size: 1.95rem;
   line-height: 1;
-  font-weight: 500;
+  font-weight: 800;
   letter-spacing: -0.03em;
 }
 
 .hx-admin-jobs-v2__stat-value.is-accent {
-  color: #9fc5be;
+  color: var(--myapps-primary);
 }
 
 .hx-admin-jobs-v2__stat-value.is-muted {
-  color: #9aa4b8;
+  color: var(--myapps-time);
 }
 
 .hx-admin-jobs-v2__filters {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 32px;
-  border-bottom: 1px solid #dfe5ee;
-  padding-bottom: 10px;
+  gap: 12px;
 }
 
 .hx-admin-jobs-v2__filter {
-  border: 0;
-  background: transparent;
-  color: #6f7b92;
-  font-weight: 500;
-  font-size: 0.98rem;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #e9eef2;
+  color: var(--myapps-title);
+  font-weight: 600;
+  font-size: 0.94rem;
   letter-spacing: -0.01em;
-  padding: 0 0 12px;
-  position: relative;
+  transition: all 0.2s ease;
+}
+
+.hx-admin-jobs-v2__filter:hover {
+  background: #dfe8ee;
 }
 
 .hx-admin-jobs-v2__filter.is-active {
-  color: #9fc5be;
-}
-
-.hx-admin-jobs-v2__filter.is-active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -11px;
-  width: 100%;
-  height: 3px;
-  border-radius: 999px;
-  background: #9fc5be;
+  background: var(--myapps-primary);
+  color: #0f3c4a;
 }
 
 .hx-admin-jobs-v2__alert {
@@ -133,118 +145,161 @@
 }
 
 .hx-admin-jobs-v2__feedback {
-  background: #fff;
-  border: 1px solid #e7ebf2;
+  background: var(--myapps-card);
+  border: 1px solid var(--myapps-border);
   border-radius: 14px;
   padding: 16px 18px;
-  color: #6f7b92;
+  color: var(--myapps-body);
   font-weight: 500;
 }
 
-.hx-admin-jobs-v2__table-card {
-  background: #fff;
-  border: 1px solid #dde4ee;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 8px 18px rgba(18, 26, 52, 0.04);
-}
-
-.hx-admin-jobs-v2__table {
-  --bs-table-bg: transparent;
-  margin: 0;
-}
-
-.hx-admin-jobs-v2__table thead th {
-  border-top: 0;
-  border-bottom: 1px solid #dfe5ee;
-  background: #fdfefe;
-  color: #8a94a8;
-  text-transform: uppercase;
-  font-size: 0.76rem;
-  letter-spacing: 0.07em;
-  font-weight: 500;
-  padding: 16px 18px;
-  white-space: nowrap;
-}
-
-.hx-admin-jobs-v2__table tbody td {
-  border-color: #e8edf4;
-  padding: 22px 18px;
-  color: #657089;
-  vertical-align: middle;
-  font-size: 0.96rem;
-  line-height: 1.5;
-  font-weight: 400;
-}
-
-.hx-admin-jobs-v2__job-cell {
+.hx-admin-jobs-v2__cards-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 18px;
 }
 
-.hx-admin-jobs-v2__job-cell strong {
-  color: #2c3448;
-  font-size: 0.97rem;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
-}
-
-.hx-admin-jobs-v2__job-cell span {
-  color: #9aa3b7;
-  font-size: 0.87rem;
-  line-height: 1.45;
-  font-weight: 400;
-}
-
-.hx-admin-jobs-v2__location-cell {
-  display: inline-flex;
+.hx-admin-jobs-v2__job-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
   align-items: center;
-  gap: 8px;
-  color: #6f7a90;
-  font-size: 0.96rem;
-  font-weight: 400;
+  background: var(--myapps-card);
+  border: 1px solid var(--myapps-border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--myapps-shadow);
 }
 
-.hx-admin-jobs-v2__location-cell i {
-  color: #677289;
-  font-size: 0.95rem;
+.hx-admin-jobs-v2__job-main {
+  min-width: 0;
 }
 
-.hx-admin-jobs-v2__type-pill {
+.hx-admin-jobs-v2__job-header-row {
+  min-width: 0;
+}
+
+.hx-admin-jobs-v2__job-copy {
+  min-width: 0;
+}
+
+.hx-admin-jobs-v2__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.hx-admin-jobs-v2__job-title {
+  margin: 0;
+  color: var(--myapps-title);
+  font-size: 1.55rem;
+  line-height: 1.18;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.hx-admin-jobs-v2__status-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  padding: 0 14px;
+  min-height: 28px;
+  padding: 0 12px;
   border-radius: 999px;
-  background: #f3f6fb;
-  color: #6c778f;
-  border: 1px solid #e6ebf2;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hx-admin-jobs-v2__status-badge.is-published {
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+}
+
+.hx-admin-jobs-v2__status-badge.is-closed {
+  background: rgba(148, 163, 184, 0.18);
+  color: #475569;
+}
+
+.hx-admin-jobs-v2__status-badge.is-draft {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.hx-admin-jobs-v2__job-description {
+  margin: 0;
+  color: var(--myapps-body);
+  font-size: 0.97rem;
+  line-height: 1.65;
+  font-weight: 400;
+  white-space: pre-line;
+}
+
+.hx-admin-jobs-v2__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin-top: 16px;
+}
+
+.hx-admin-jobs-v2__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--myapps-meta);
+  font-size: 0.95rem;
   font-weight: 500;
-  font-size: 0.87rem;
-  letter-spacing: -0.01em;
+}
+
+.hx-admin-jobs-v2__meta-item i {
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.hx-admin-jobs-v2__job-aside {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  padding-left: 24px;
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.hx-admin-jobs-v2__status-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hx-admin-jobs-v2__status-label {
+  color: var(--myapps-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .hx-admin-jobs-v2__status-select {
-  min-height: 38px;
+  min-height: 40px;
+  width: 100%;
   padding: 0 42px 0 16px;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-weight: 500;
-  font-size: 0.94rem;
+  font-weight: 700;
+  font-size: 0.92rem;
   letter-spacing: -0.01em;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   cursor: pointer;
-
   background-repeat: no-repeat, no-repeat;
   background-position: right 14px center, 0 0;
   background-size: 12px, auto;
-
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
@@ -253,75 +308,78 @@
 }
 
 .hx-admin-jobs-v2__status-select:focus {
-  box-shadow: 0 0 0 4px rgba(172, 207, 201, 0.18);
+  box-shadow: 0 0 0 4px rgba(103, 172, 192, 0.18);
 }
 
 .hx-admin-jobs-v2__status-select.is-published {
-  background-color: #eef8f4;
-  color: #7eb7ab;
-  border-color: #dcefe8;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%237eb7ab' d='M3.2 5.5 8 10.3l4.8-4.8 1.2 1.2L8 12.7 2 6.7z'/%3E%3C/svg%3E");
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border-color: rgba(34, 197, 94, 0.18);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%2315803d' d='M3.2 5.5 8 10.3l4.8-4.8 1.2 1.2L8 12.7 2 6.7z'/%3E%3C/svg%3E");
 }
 
 .hx-admin-jobs-v2__status-select.is-closed {
-  background-color: #f3f5fa;
-  color: #7f8ca7;
-  border-color: #e1e6ef;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%237f8ca7' d='M3.2 5.5 8 10.3l4.8-4.8 1.2 1.2L8 12.7 2 6.7z'/%3E%3C/svg%3E");
+  background-color: rgba(148, 163, 184, 0.18);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.22);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%23475569' d='M3.2 5.5 8 10.3l4.8-4.8 1.2 1.2L8 12.7 2 6.7z'/%3E%3C/svg%3E");
 }
 
 .hx-admin-jobs-v2__status-select.is-draft {
-  background-color: #fff8e8;
-  color: #d39a21;
-  border-color: #f3dfaa;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%23d39a21' d='M3.2 5.5 8 10.3l4.8-4.8 1.2 1.2L8 12.7 2 6.7z'/%3E%3C/svg%3E");
+  background-color: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.22);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%23b45309' d='M3.2 5.5 8 10.3l4.8-4.8 1.2 1.2L8 12.7 2 6.7z'/%3E%3C/svg%3E");
 }
 
 .hx-admin-jobs-v2__status-select option {
-  color: #2c3448;
+  color: var(--myapps-title);
   background: #ffffff;
 }
 
 .hx-admin-jobs-v2__actions {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
 .hx-admin-jobs-v2__action-btn {
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 42px;
+  padding: 0 16px;
   border-radius: 999px;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  font-weight: 500;
-  font-size: 0.87rem;
+  font-weight: 700;
+  font-size: 0.9rem;
   letter-spacing: -0.01em;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .hx-admin-jobs-v2__action-btn.is-postulantes {
-  border: 1px solid #dbe3ee;
-  color: #59657d;
-  background: #fff;
+  border: 1px solid rgba(103, 172, 192, 0.45);
+  color: var(--myapps-title);
+  background: #ffffff;
+  min-width: 150px;
 }
 
 .hx-admin-jobs-v2__action-btn.is-postulantes:hover {
-  color: #59657d;
-  border-color: #bfc9d8;
+  color: var(--myapps-title);
+  border-color: var(--myapps-primary);
+  background: rgba(103, 172, 192, 0.08);
 }
 
 .hx-admin-jobs-v2__icon-btn {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
-  border: 1px solid #dbe3ee;
-  background: #fff;
-  color: #7d88a0;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -330,22 +388,24 @@
 
 .hx-admin-jobs-v2__icon-btn:hover {
   transform: translateY(-1px);
-  border-color: #c7d1de;
+  border-color: rgba(103, 172, 192, 0.32);
+  background: rgba(103, 172, 192, 0.08);
+  color: var(--myapps-title);
 }
 
 .hx-admin-jobs-v2__icon-btn.is-danger {
-  color: #c77973;
+  color: #dc2626;
 }
 
 .hx-admin-jobs-v2__icon-btn.is-danger:hover {
-  border-color: #e6c2be;
-  background: #fff8f7;
+  border-color: rgba(220, 38, 38, 0.24);
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
 }
 
 .hx-admin-jobs-v2__footer {
-  padding: 16px 20px;
-  border-top: 1px solid #e8edf4;
-  color: #7f8aa0;
+  padding: 6px 2px 0;
+  color: var(--myapps-body);
   font-size: 0.95rem;
   font-weight: 400;
 }
@@ -353,19 +413,23 @@
 .hx-admin-jobs-v2__empty {
   padding: 42px 20px;
   text-align: center;
+  background: var(--myapps-card);
+  border: 1px solid var(--myapps-border);
+  border-radius: 18px;
+  box-shadow: var(--myapps-shadow);
 }
 
 .hx-admin-jobs-v2__empty h3 {
   margin: 0;
-  color: #1f2539;
+  color: var(--myapps-title);
   font-size: 1.1rem;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .hx-admin-jobs-v2__empty p {
   margin: 10px 0 0;
-  color: #7b8498;
+  color: var(--myapps-body);
   font-size: 0.96rem;
   line-height: 1.55;
   font-weight: 400;
@@ -375,27 +439,45 @@
   margin-top: 18px;
   min-height: 42px;
   padding: 0 16px;
-  border-radius: 12px;
+  border-radius: 10px;
   text-decoration: none;
-  background: #accfc9;
-  color: #fff;
+  background: var(--myapps-primary);
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 0.95rem;
+  transition: all 0.2s ease;
 }
 
 .hx-admin-jobs-v2__empty-btn:hover {
-  color: #fff;
+  color: #ffffff;
+  background: var(--myapps-primary-dark);
 }
 
 @media (max-width: 1200px) {
   .hx-admin-jobs-v2__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .hx-admin-jobs-v2__job-card {
+    grid-template-columns: 1fr;
+  }
+
+  .hx-admin-jobs-v2__job-aside {
+    padding-left: 0;
+  padding-top: 18px;
+  border-left: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  justify-content: flex-start;
+  }
 }
 
 @media (max-width: 768px) {
+  .hx-admin-jobs-v2 {
+    padding: 22px 16px 32px;
+  }
+
   .hx-admin-jobs-v2__header {
     flex-direction: column;
     align-items: stretch;
@@ -410,15 +492,29 @@
   }
 
   .hx-admin-jobs-v2__filters {
-    gap: 18px;
+    flex-wrap: nowrap;
     overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .hx-admin-jobs-v2__job-card {
+    padding: 18px;
+  }
+
+  .hx-admin-jobs-v2__job-title {
+    font-size: 1.3rem;
   }
 
   .hx-admin-jobs-v2__actions {
-    justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hx-admin-jobs-v2__action-btn.is-postulantes,
+  .hx-admin-jobs-v2__icon-btn {
+    justify-content: center;
   }
 }
-
 
 /* =========================
    MODAL NUEVA VACANTE
@@ -490,8 +586,8 @@
 
 .hx-job-form-modal .form-control:focus,
 .hx-job-form-modal .form-select:focus {
-  border-color: #accfc9;
-  box-shadow: 0 0 0 0.22rem rgba(172, 207, 201, 0.22);
+  border-color: var(--myapps-primary);
+  box-shadow: 0 0 0 0.22rem rgba(103, 172, 192, 0.22);
 }
 
 .hx-job-form-modal .form-label {
@@ -514,4 +610,17 @@
   .hx-job-form-modal__content {
     padding: 16px;
   }
+}
+
+.hx-admin-jobs-v2__icon-btn.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+.hx-admin-jobs-v2__icon-btn.is-disabled:hover {
+  transform: none;
+  border-color: rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  color: #dc2626;
 }

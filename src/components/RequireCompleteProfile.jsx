@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 // SOLO se permite esta ruta cuando el perfil está incompleto:
 const ALLOWED_WHEN_INCOMPLETE = ["/mi-perfil"];

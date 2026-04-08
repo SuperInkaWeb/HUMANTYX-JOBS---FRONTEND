@@ -25,6 +25,7 @@ import AdminJobForm from "./pages/admin/AdminJobForm";
 import AdminJobApplications from "./pages/admin/AdminJobApplications";
 import AdminCandidatesList from "./pages/admin/AdminCandidatesList";
 import AdminInviteUser from "./pages/admin/AdminInviteUser";
+import AdminCandidateProfile from "./pages/admin/AdminCandidateProfile";
 
 export default function App() {
   return (
@@ -80,6 +81,11 @@ export default function App() {
               <Route
                 path="/rrhh/vacantes/:id/postulantes"
                 element={<AdminJobApplications />}
+              />
+
+              <Route
+                path="/rrhh/vacantes/:jobId/postulantes/:candidateId/perfil"
+                element={<AdminCandidateProfile />}
               />
 
               <Route

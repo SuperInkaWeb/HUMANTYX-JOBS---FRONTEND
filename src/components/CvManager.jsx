@@ -22,13 +22,16 @@ export default function CvManager() {
     try {
       setLoading(true);
       const data = await getCvInfo();
-      setCvInfo(data);
+      setCvInfo(data?.cv || null);
+
     } catch {
       setCvInfo(null);
     } finally {
       setLoading(false);
     }
   }
+
+   
 
   function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -101,6 +104,8 @@ export default function CvManager() {
     }
   }
 
+  
+
   return (
     <div className="hx-cv-manager">
       <h3 className="hx-profile-box-title">Gestión de CV</h3>
@@ -119,7 +124,7 @@ export default function CvManager() {
 
                   <div>
                     <div className="hx-cv-file__title-row">
-                      <span className="hx-cv-file__title">CV cargado</span>
+                      <span className="hx-cv-file__title"> {cvInfo?.original_name || "CV.pdf"}</span>
 
                       <span className="">
                         <i className="bi bi-check-circle-fill"></i>

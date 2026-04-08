@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import "./my-profile.css";
 
 import ProfileHeader from "../components/profile/ProfileHeader";

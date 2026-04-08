@@ -130,3 +130,33 @@ export async function validateInvite(token, email) {
 
   return data;
 }
+
+/* =========================
+   MENSAJERIA ENTRE RECLUTADOR Y CANDIDATO
+========================= */
+
+export async function getAdminApplicationMessages(applicationId) {
+  return apiFetch(`/admin/applications/${applicationId}/messages`);
+}
+
+export async function sendAdminApplicationMessage(applicationId, messageText) {
+  return apiFetch(`/admin/applications/${applicationId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      message_text: messageText,
+    }),
+  });
+}
+
+export async function getCandidateApplicationMessages(applicationId) {
+  return apiFetch(`/candidate/applications/${applicationId}/messages`);
+}
+
+export async function replyCandidateApplicationMessage(applicationId, messageText) {
+  return apiFetch(`/candidate/applications/${applicationId}/messages/reply`, {
+    method: "POST",
+    body: JSON.stringify({
+      message_text: messageText,
+    }),
+  });
+}

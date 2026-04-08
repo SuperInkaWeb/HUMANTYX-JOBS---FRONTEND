@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../services/api";
-
-const AuthCtx = createContext(null);
+import { AuthCtx } from "./auth-context";
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem("token") || "");
@@ -21,7 +20,6 @@ export function AuthProvider({ children }) {
       setUser(u);
       return u;
     } catch {
-      // token inválido
       localStorage.removeItem("token");
       setToken("");
       setUser(null);
@@ -31,7 +29,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // 👇 NUEVO: refrescar /me cuando tú quieras (ej: luego de guardar perfil)
   async function refreshMe() {
     setLoading(true);
     return await loadMe();
@@ -54,7 +51,6 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", data.token);
     setToken(data.token);
 
-    // cargar /me inmediatamente y retornar el user al componente
     const u = await loadMe(data.token);
     return u;
   }
@@ -86,8 +82,4 @@ export function AuthProvider({ children }) {
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
-}
-
-export function useAuth() {
-  return useContext(AuthCtx);
 }

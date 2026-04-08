@@ -20,6 +20,8 @@ export default function JobInfoList({ selectedJob }) {
     },
   ].filter((item) => item.value);
 
+  if (!cards.length) return null;
+
   return (
     <div className="job-info-grid">
       {cards.map((item) => (
