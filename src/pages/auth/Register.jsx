@@ -24,7 +24,8 @@ export default function Register() {
       if (!u) return nav("/empleos");
 
       if (u.role === "CANDIDATE" && u.profile_complete === false) {
-        return nav("/mi-perfil");
+        return nav("/completar-perfil");
+
       }
 
       return nav("/empleos");

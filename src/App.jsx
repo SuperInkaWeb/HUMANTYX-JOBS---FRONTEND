@@ -27,13 +27,14 @@ import AdminCandidatesList from "./pages/admin/AdminCandidatesList";
 import AdminInviteUser from "./pages/admin/AdminInviteUser";
 import AdminCandidateProfile from "./pages/admin/AdminCandidateProfile";
 
+import CompleteProfile from "./pages/CompleteProfile";
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <RequireCompleteProfile>
           <Routes>
-
             {/* AUTH LAYOUT (SIN NAVBAR NI FOOTER) */}
             <Route element={<AuthLayout />}>
               <Route path="/login" element={<Login />} />
@@ -46,6 +47,15 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/empleos" element={<JobsList />} />
               <Route path="/empleos/:id" element={<JobDetail />} />
+
+              <Route
+                path="/completar-perfil"
+                element={
+                  <ProtectedRoute>
+                    <CompleteProfile />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/mi-perfil"
@@ -108,7 +118,6 @@ export default function App() {
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
-
           </Routes>
         </RequireCompleteProfile>
       </AuthProvider>

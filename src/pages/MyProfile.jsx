@@ -105,14 +105,17 @@ export default function MyProfile() {
 
   const requiredKeys = useMemo(
     () => [
-      "first_name",
-      "last_name",
-      "phone",
-      "document_type",
-      "document_number",
-      "country",
-      "department",
-      "city",
+  "first_name",
+  "last_name",
+  "phone",
+  "document_type",
+  "document_number",
+  "country",
+  "department",
+  "city",
+  "birth_date",
+  "gender",
+  "marital_status",
     ],
     []
   );
@@ -160,14 +163,17 @@ export default function MyProfile() {
 
   const checklist = useMemo(() => {
     const personalComplete =
-      !!safeForm.first_name?.trim() &&
-      !!safeForm.last_name?.trim() &&
-      !!safeForm.phone &&
-      !!safeForm.document_type &&
-      !!safeForm.document_number &&
-      !!safeForm.country?.trim() &&
-      !!safeForm.department?.trim() &&
-      !!safeForm.city?.trim();
+  !!safeForm.first_name?.trim() &&
+  !!safeForm.last_name?.trim() &&
+  !!safeForm.phone &&
+  !!safeForm.document_type &&
+  !!safeForm.document_number &&
+  !!safeForm.country?.trim() &&
+  !!safeForm.department?.trim() &&
+  !!safeForm.city?.trim() &&
+  !!safeForm.birth_date &&
+  !!safeForm.gender &&
+  !!safeForm.marital_status;
 
     const professionalComplete =
       !!safeForm.headline?.trim() &&

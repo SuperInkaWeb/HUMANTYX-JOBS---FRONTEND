@@ -181,6 +181,18 @@ export function validateRequiredForForm(
   }
   if (!sourceForm.city.trim()) throw new Error("Ciudad es obligatorio.");
 
+  if (!sourceForm.birth_date) {
+  throw new Error("Fecha de nacimiento es obligatoria.");
+}
+
+if (!sourceForm.gender) {
+  throw new Error("Género es obligatorio.");
+}
+
+if (!sourceForm.marital_status) {
+  throw new Error("Estado civil es obligatorio.");
+}
+
   const academicItemsToValidate = sourceForm.academic_items.filter(
     (x) => !isAcademicItemEmpty(x)
   );
