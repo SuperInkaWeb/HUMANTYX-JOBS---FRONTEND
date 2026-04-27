@@ -4,6 +4,9 @@ import { apiFetch } from "../../services/api";
 import AdminJobForm from "./AdminJobForm";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import "./admin-jobs-list.css";
+import { sanitizeRichTextHtml } from "../../utils/richText";
+import JobDescriptionModal from "../../components/admin/JobDescriptionModal";
+import { useAuth } from "../../hooks/useAuth";
 
 const STATUS_META = {
   PUBLISHED: { label: "Publicado", cls: "is-published" },
@@ -18,25 +21,108 @@ const FILTERS = [
   { key: "DRAFT", label: "Borradores" },
 ];
 
+const DESCRIPTION_PREVIEW_WORDS = 50;
+
 function formatEmploymentType(value) {
   if (!value) return "—";
 
   const map = {
-    internship: "Internship",
-    part_time: "Part-time",
-    "part-time": "Part-time",
-    full_time: "Full-time",
-    "full-time": "Full-time",
+    internship: "Prácticas",
+    part_time: "Medio Tiempo",
+    "part-time": "Medio Tiempo",
+    full_time: "Tiempo Completo",
+    "full-time": "Tiempo Completo",
     contract: "Contrato",
   };
 
   return map[value] || value;
 }
 
-function getSafeDescription(value) {
-  const text = String(value || "").trim();
-  if (!text) return "Esta vacante aún no tiene una descripción registrada.";
-  return text;
+function formatCreator(job) {
+  const roleLabel =
+    job?.creator_role === "ADMIN"
+      ? "Admin"
+      : job?.creator_role === "RRHH"
+      ? "RRHH"
+      : "Usuario";
+
+  const firstName = (job?.creator_first_name || "").trim();
+  const lastName = (job?.creator_last_name || "").trim();
+
+  const fullName =
+    firstName && lastName
+      ? `${firstName} ${lastName}`
+      : firstName || lastName || "";
+
+  const visibleName = fullName || job?.creator_email || "No disponible";
+
+  return `${roleLabel} · ${visibleName}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+
+  try {
+    return new Date(value).toLocaleString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function hasRealEdit(job) {
+  if (!job?.created_at || !job?.updated_at) return false;
+
+  const created = new Date(job.created_at).getTime();
+  const updated = new Date(job.updated_at).getTime();
+
+  return updated > created + 1000;
+}
+
+function extractPreviewData(value) {
+  const html = sanitizeRichTextHtml(value);
+
+  if (!html) {
+    return {
+      contentTitle: "",
+      previewText: "Esta vacante aún no tiene una descripción registrada.",
+    };
+  }
+
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+
+  const firstHeading = temp.querySelector("h2") || temp.querySelector("h3");
+
+  const contentTitle = firstHeading
+    ? (firstHeading.textContent || "").trim()
+    : "";
+
+  if (firstHeading) {
+    firstHeading.remove();
+  }
+
+  const fullText = (temp.textContent || "")
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = fullText.split(" ").filter(Boolean);
+  const previewText =
+    words.length > DESCRIPTION_PREVIEW_WORDS
+      ? `${words.slice(0, DESCRIPTION_PREVIEW_WORDS).join(" ")}...`
+      : fullText;
+
+  return {
+    contentTitle,
+    previewText:
+      previewText || "Esta vacante aún no tiene una descripción registrada.",
+  };
 }
 
 function canDeleteJob(job) {
@@ -44,6 +130,16 @@ function canDeleteJob(job) {
   const isPublished = job?.status === "PUBLISHED";
 
   return applicantsCount === 0 && !isPublished;
+}
+
+function getJobDescriptionHtml(value) {
+  const html = sanitizeRichTextHtml(value);
+
+  if (!html) {
+    return "<p>Esta vacante aún no tiene una descripción registrada.</p>";
+  }
+
+  return html;
 }
 
 export default function AdminJobsList() {
@@ -58,6 +154,24 @@ export default function AdminJobsList() {
 
   const [jobToDelete, setJobToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [expandedDescriptionId, setExpandedDescriptionId] = useState(null);
+
+  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
+  const [selectedJobForDescription, setSelectedJobForDescription] =
+    useState(null);
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
+
+  function openDescriptionModal(job) {
+    setSelectedJobForDescription(job);
+    setDescriptionModalOpen(true);
+  }
+
+  function closeDescriptionModal() {
+    setDescriptionModalOpen(false);
+    setSelectedJobForDescription(null);
+  }
 
   async function load() {
     try {
@@ -265,6 +379,7 @@ export default function AdminJobsList() {
             ) : (
               filteredRows.map((job) => {
                 const status = STATUS_META[job.status] || STATUS_META.DRAFT;
+                const preview = extractPreviewData(job.description);
 
                 return (
                   <article key={job.id} className="hx-admin-jobs-v2__job-card">
@@ -281,31 +396,81 @@ export default function AdminJobsList() {
                             >
                               {status.label}
                             </span>
+
+                            <button
+                              type="button"
+                              className="hx-admin-jobs-v2__view-description-btn"
+                              onClick={() => openDescriptionModal(job)}
+                            >
+                              <span>Ver descripción</span>
+                              <i className="bi bi-chevron-right"></i>
+                            </button>
                           </div>
 
-                          <p className="hx-admin-jobs-v2__job-description">
-                            {getSafeDescription(job.description)}
-                          </p>
+                          {expandedDescriptionId === job.id && (
+                            <div
+                              className="hx-admin-jobs-v2__job-description-panel"
+                              dangerouslySetInnerHTML={{
+                                __html: getJobDescriptionHtml(job.description),
+                              }}
+                            />
+                          )}
                         </div>
                       </div>
 
-                      <div className="hx-admin-jobs-v2__meta-row">
-                        <span className="hx-admin-jobs-v2__meta-item">
-                          <i className="bi bi-geo-alt-fill"></i>
-                          <span>{job.location || "No especificado"}</span>
-                        </span>
+                      <div className="hx-admin-jobs-v2__card-main">
+                        <div className="hx-admin-jobs-v2__card-left">
+                          <div className="hx-admin-jobs-v2__meta-stack">
+                            <span className="hx-admin-jobs-v2__meta-item">
+                              <i className="bi bi-geo-alt-fill"></i>
+                              <span>{job.location || "No especificado"}</span>
+                            </span>
 
-                        <span className="hx-admin-jobs-v2__meta-item">
-                          <i className="bi bi-briefcase-fill"></i>
-                          <span>
-                            {formatEmploymentType(job.employment_type)}
+                            <span className="hx-admin-jobs-v2__meta-item">
+                              <i className="bi bi-briefcase-fill"></i>
+                              <span>
+                                {formatEmploymentType(job.employment_type)}
+                              </span>
+                            </span>
+
+                            <span className="hx-admin-jobs-v2__meta-item">
+                              <i className="bi bi-cash-stack"></i>
+                              <span>{job.salary_range || "No especificado"}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="hx-admin-jobs-v2__card-center">
+                          {isAdmin && (
+                            <span className="hx-admin-jobs-v2__meta-item">
+                              <i className="bi bi-person-badge-fill"></i>
+                              <span>{formatCreator(job)}</span>
+                            </span>
+                          )}
+
+                          <span className="hx-admin-jobs-v2__meta-item">
+                            <i className="bi bi-calendar-plus-fill"></i>
+                            <span>Creada: {formatDateTime(job.created_at)}</span>
                           </span>
-                        </span>
 
-                        <span className="hx-admin-jobs-v2__meta-item">
-                          <i className="bi bi-cash-stack"></i>
-                          <span>{job.salary_range || "—"}</span>
-                        </span>
+                          {hasRealEdit(job) && (
+                            <span className="hx-admin-jobs-v2__meta-item">
+                              <i className="bi bi-pencil-square"></i>
+                              <span>
+                                Editada: {formatDateTime(job.updated_at)}
+                              </span>
+                            </span>
+                          )}
+
+                          {job.published_at && (
+                            <span className="hx-admin-jobs-v2__meta-item">
+                              <i className="bi bi-megaphone-fill"></i>
+                              <span>
+                                Publicada: {formatDateTime(job.published_at)}
+                              </span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -377,6 +542,14 @@ export default function AdminJobsList() {
           </div>
         </div>
       )}
+
+      <JobDescriptionModal
+        isOpen={descriptionModalOpen}
+        job={selectedJobForDescription}
+        onClose={closeDescriptionModal}
+        onSaved={load}
+        apiFetch={apiFetch}
+      />
 
       <ConfirmActionModal
         isOpen={Boolean(jobToDelete)}

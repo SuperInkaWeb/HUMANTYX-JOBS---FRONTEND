@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   apiFetch,
   getCandidateApplicationMessages,
   replyCandidateApplicationMessage,
+  markNotificationsAsReadByContext,
 } from "../services/api";
 import ApplicationMessagesModal from "../components/messages/ApplicationMessagesModal";
 import "./my-applications.css";
+
+import { formatEmploymentType } from "../utils/jobs";
+
+const CHAT_POLL_MS = 5000;
+const LIST_POLL_MS = 15000;
 
 function formatDate(dateString) {
   if (!dateString) return "—";
@@ -25,7 +31,7 @@ function StatusBadge({ status }) {
     APPLIED: { label: "Postulado", cls: "is-applied" },
     IN_REVIEW: { label: "En revisión", cls: "is-review" },
     INTERVIEW: { label: "Entrevista", cls: "is-interview" },
-    REJECTED: { label: "Rechazado", cls: "is-rejected" },
+    REJECTED: { label: "No seleccionado", cls: "is-rejected" },
     HIRED: { label: "Contratado", cls: "is-hired" },
   };
 
@@ -66,64 +72,109 @@ export default function MyApplications() {
   const [messagesList, setMessagesList] = useState([]);
   const [messagesPermissions, setMessagesPermissions] = useState({
     can_reply: false,
+    can_send: false,
   });
   const [messagesApplicationInfo, setMessagesApplicationInfo] = useState(null);
 
-  const loadApplications = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const chatPollRef = useRef(null);
 
-      const data = await apiFetch("/candidate/applications");
+  const loadApplications = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setLoading(true);
+        if (!silent) setError("");
 
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.applications)
-        ? data.applications
-        : Array.isArray(data?.apps)
-        ? data.apps
-        : [];
+        const data = await apiFetch("/candidate/applications");
 
-      setApps(list);
-    } catch (e) {
-      setError(e.message || "Ocurrió un error cargando tus postulaciones.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.applications)
+          ? data.applications
+          : Array.isArray(data?.apps)
+          ? data.apps
+          : [];
+
+        setApps(list);
+
+        const applicationIds = list
+          .map((item) => item?.id)
+          .filter((id) => typeof id === "string" && id.trim());
+
+        if (applicationIds.length > 0) {
+          try {
+            await markNotificationsAsReadByContext({
+              type: "APPLICATION_STATUS_CHANGED",
+              application_ids: applicationIds,
+            });
+          } catch {
+            // silencioso
+          }
+        }
+      } catch (e) {
+        if (!silent) {
+          setError(e.message || "Ocurrió un error cargando tus postulaciones.");
+        }
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadApplications();
   }, [loadApplications]);
 
-  async function loadCandidateMessages(applicationId) {
-    setMessagesLoading(true);
-    setMessagesError("");
+  const loadCandidateMessages = useCallback(
+    async (applicationId, { silent = false } = {}) => {
+      if (!applicationId) return;
 
-    try {
-      const data = await getCandidateApplicationMessages(applicationId);
+      if (!silent) {
+        setMessagesLoading(true);
+        setMessagesError("");
+      }
 
-      setMessagesConversation(data.conversation || null);
-      setMessagesList(Array.isArray(data.messages) ? data.messages : []);
-      setMessagesPermissions(data.permissions || { can_reply: false });
-      setMessagesApplicationInfo(data.application || null);
-    } catch (err) {
-      setMessagesError(err.message || "No se pudieron cargar los mensajes");
-      setMessagesConversation(null);
-      setMessagesList([]);
-      setMessagesPermissions({ can_reply: false });
-      setMessagesApplicationInfo(null);
-    } finally {
-      setMessagesLoading(false);
-    }
-  }
+      try {
+        const data = await getCandidateApplicationMessages(applicationId);
+
+        setMessagesConversation(data.conversation || null);
+        setMessagesList(Array.isArray(data.messages) ? data.messages : []);
+        setMessagesPermissions(
+          data.permissions || { can_reply: false, can_send: false }
+        );
+        setMessagesApplicationInfo(data.application || null);
+      } catch (err) {
+        if (!silent) {
+          setMessagesError(err.message || "No se pudieron cargar los mensajes");
+          setMessagesConversation(null);
+          setMessagesList([]);
+          setMessagesPermissions({ can_reply: false, can_send: false });
+          setMessagesApplicationInfo(null);
+        }
+      } finally {
+        if (!silent) {
+          setMessagesLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   async function handleOpenMessages(applicationRow) {
     setSelectedApplicationForMessages(applicationRow);
     setShowMessagesModal(true);
 
+    try {
+      await markNotificationsAsReadByContext({
+        type: "NEW_MESSAGE",
+        application_id: applicationRow.id,
+      });
+    } catch {
+      // silencioso
+    }
+
     await loadCandidateMessages(applicationRow.id);
-    await loadApplications();
+    await loadApplications(true);
   }
 
   function handleCloseMessages() {
@@ -131,7 +182,7 @@ export default function MyApplications() {
     setMessagesError("");
     setMessagesConversation(null);
     setMessagesList([]);
-    setMessagesPermissions({ can_reply: false });
+    setMessagesPermissions({ can_reply: false, can_send: false });
     setMessagesApplicationInfo(null);
     setSelectedApplicationForMessages(null);
   }
@@ -149,13 +200,66 @@ export default function MyApplications() {
       );
 
       await loadCandidateMessages(selectedApplicationForMessages.id);
-      await loadApplications();
+      await loadApplications(true);
     } catch (err) {
       setMessagesError(err.message || "No se pudo enviar la respuesta");
     } finally {
       setMessagesSending(false);
     }
   }
+
+  useEffect(() => {
+    if (!showMessagesModal || !selectedApplicationForMessages?.id) return;
+
+    async function pollChat() {
+      if (document.visibilityState !== "visible") return;
+
+      await loadCandidateMessages(selectedApplicationForMessages.id, {
+        silent: true,
+      });
+      await loadApplications(true);
+    }
+
+    chatPollRef.current = setInterval(pollChat, CHAT_POLL_MS);
+
+    return () => {
+      if (chatPollRef.current) {
+        clearInterval(chatPollRef.current);
+        chatPollRef.current = null;
+      }
+    };
+  }, [
+    showMessagesModal,
+    selectedApplicationForMessages?.id,
+    loadCandidateMessages,
+    loadApplications,
+  ]);
+
+  useEffect(() => {
+    async function pollList() {
+      if (document.visibilityState !== "visible") return;
+      if (showMessagesModal) return;
+
+      await loadApplications(true);
+    }
+
+    const interval = setInterval(pollList, LIST_POLL_MS);
+
+    return () => clearInterval(interval);
+  }, [showMessagesModal, loadApplications]);
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+      loadApplications(true);
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadApplications]);
 
   const counts = useMemo(() => {
     return {
@@ -252,7 +356,7 @@ export default function MyApplications() {
                     a.location || a.job_location || "Ubicación no especificada";
                   const salary = a.salary_range || "Salario no especificado";
                   const employmentType =
-                    a.employment_type || "Modalidad no especificada";
+                    formatEmploymentType(a.employment_type);
                   const appliedAt = formatDate(a.created_at);
                   const unreadCount = getUnreadCount(a.unread_messages_count);
 
@@ -338,7 +442,9 @@ export default function MyApplications() {
         application={messagesApplicationInfo}
         conversation={messagesConversation}
         messages={messagesList}
-        canSend={!!messagesPermissions?.can_reply}
+        canSend={
+          !!messagesPermissions?.can_reply || !!messagesPermissions?.can_send
+        }
         loading={messagesLoading}
         sending={messagesSending}
         error={messagesError}

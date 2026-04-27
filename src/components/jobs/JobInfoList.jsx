@@ -1,3 +1,5 @@
+import { formatEmploymentType } from "../../utils/jobs";
+
 export default function JobInfoList({ selectedJob }) {
   const cards = [
     {
@@ -9,7 +11,7 @@ export default function JobInfoList({ selectedJob }) {
     {
       key: "employment",
       label: "Tipo de puesto",
-      value: selectedJob.employment_type,
+      value: formatEmploymentType(selectedJob.employment_type),
       icon: "bi-briefcase-fill",
     },
     {

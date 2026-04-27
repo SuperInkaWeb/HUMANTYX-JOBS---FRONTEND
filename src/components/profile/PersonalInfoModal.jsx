@@ -8,13 +8,12 @@ export default function PersonalInfoModal({
   form,
   onChange,
   onDocumentTypeChange,
+  error = "",
 }) {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="hx-modal-backdrop hx-personal-modal-backdrop"
-    >
+    <div className="hx-modal-backdrop hx-personal-modal-backdrop">
       <div
         className="hx-modal-panel hx-personal-modal-panel"
         onClick={(e) => e.stopPropagation()}
@@ -43,6 +42,12 @@ export default function PersonalInfoModal({
         </div>
 
         <form onSubmit={onSave} className="hx-personal-modal-body">
+          {error ? (
+            <div className="alert alert-danger rounded-4 mb-3">
+              {error}
+            </div>
+          ) : null}
+
           <div className="hx-personal-grid">
             <div className="hx-personal-field hx-col-6">
               <label className="hx-personal-label">Nombres *</label>

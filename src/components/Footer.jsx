@@ -4,13 +4,13 @@ export default function Footer() {
       <div className="container hx-footer-row">
 
         <img
-          src="/logo-footer-humantyx.png"
+          src="/logo-oficial.png"
           alt="Humantyx Jobs"
           className="hx-footer-logo"
         />
 
         <div className="hx-footer-text">
-          © 2026 Humantyx Jobs · Todos los derechos reservados
+          © 2026 QORIBEX | TODOS LOS DERECHOS RESERVADOS
         </div>
 
       </div>

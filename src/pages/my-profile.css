@@ -1471,3 +1471,43 @@ body {
     text-align: center;
   }
 }
+
+/* =========================
+   PERFIL INTERNO (ADMIN / RRHH)
+========================= */
+
+.hx-profile-layout--internal {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.hx-profile-layout--internal .hx-profile-main {
+  max-width: 980px;
+}
+
+.hx-profile-layout--internal .hx-section-shell,
+.hx-profile-layout--internal .hx-profile-shell-card {
+  width: 100%;
+}
+
+.hx-profile-contact-grid--internal {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem 1.5rem;
+}
+
+.hx-profile-contact-item--full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 992px) {
+  .hx-profile-layout--internal .hx-profile-main {
+    max-width: 100%;
+  }
+
+  .hx-profile-contact-grid--internal {
+    grid-template-columns: 1fr;
+  }
+
+  .hx-profile-contact-item--full {
+    grid-column: auto;
+  }
+}

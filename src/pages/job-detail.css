@@ -361,3 +361,47 @@
     line-height: 1.75;
   }
 }
+
+
+.jobdetail-richtext h1,
+.jobdetail-richtext h2,
+.jobdetail-richtext h3,
+.jobdetail-richtext h4,
+.jobdetail-richtext h5,
+.jobdetail-richtext h6 {
+  margin: 0 0 14px;
+  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.jobdetail-richtext p {
+  margin: 0 0 14px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.jobdetail-richtext ul,
+.jobdetail-richtext ol {
+  margin: 0 0 14px 22px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.jobdetail-richtext li {
+  margin-bottom: 8px;
+}
+
+.jobdetail-richtext strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.jobdetail-richtext em {
+  font-style: italic;
+}
+
+.jobdetail-richtext a {
+  color: #0ea5b7;
+  text-decoration: underline;
+}

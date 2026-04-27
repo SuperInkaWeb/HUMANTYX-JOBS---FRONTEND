@@ -31,14 +31,14 @@ export async function apiFetch(path, options = {}) {
     : null;
 
   if (!res.ok) {
-  const err = new Error(
-    data && data.message ? data.message : `Error HTTP ${res.status}`
-  );
-  err.status = res.status;
-  err.code = data?.code;
-  err.data = data;
-  throw err;
-}
+    const err = new Error(
+      data && data.message ? data.message : `Error HTTP ${res.status}`
+    );
+    err.status = res.status;
+    err.code = data?.code;
+    err.data = data;
+    throw err;
+  }
 
   return data;
 }
@@ -47,9 +47,6 @@ export async function apiFetch(path, options = {}) {
    CV - GESTIÓN
 ========================= */
 
-/**
- * Subir CV (multipart/form-data)
- */
 export async function uploadCv(file) {
   const form = new FormData();
   form.append("cv", file);
@@ -60,16 +57,10 @@ export async function uploadCv(file) {
   });
 }
 
-/**
- * Obtener info del CV actual
- */
 export async function getCvInfo() {
   return apiFetch("/candidate/files/cv");
 }
 
-/**
- * Descargar CV
- */
 export async function downloadCv() {
   const token = localStorage.getItem("token");
 
@@ -99,7 +90,6 @@ export async function downloadCv() {
   const a = document.createElement("a");
   a.href = url;
 
-  // Intentar obtener nombre real del backend
   const contentDisposition = res.headers.get("Content-Disposition");
   if (contentDisposition && contentDisposition.includes("filename=")) {
     const fileName = contentDisposition
@@ -108,7 +98,7 @@ export async function downloadCv() {
     a.download = fileName;
   } else {
     a.download = "cv.pdf";
-  } 
+  }
 
   document.body.appendChild(a);
   a.click();
@@ -119,7 +109,9 @@ export async function downloadCv() {
 
 export async function validateInvite(token, email) {
   const res = await fetch(
-    `${BASE_URL}/auth/invites/validate?token=${token}&email=${encodeURIComponent(email)}`
+    `${BASE_URL}/auth/invites/validate?token=${token}&email=${encodeURIComponent(
+      email
+    )}`
   );
 
   const data = await res.json();
@@ -152,11 +144,45 @@ export async function getCandidateApplicationMessages(applicationId) {
   return apiFetch(`/candidate/applications/${applicationId}/messages`);
 }
 
-export async function replyCandidateApplicationMessage(applicationId, messageText) {
+export async function replyCandidateApplicationMessage(
+  applicationId,
+  messageText
+) {
   return apiFetch(`/candidate/applications/${applicationId}/messages/reply`, {
     method: "POST",
     body: JSON.stringify({
       message_text: messageText,
     }),
+  });
+}
+
+/* =========================
+   NOTIFICACIONES
+========================= */
+
+export async function getMyNotifications() {
+  return apiFetch("/notifications");
+}
+
+export async function getUnreadNotificationsCount() {
+  return apiFetch("/notifications/unread-count");
+}
+
+export async function markNotificationAsRead(notificationId) {
+  return apiFetch(`/notifications/${notificationId}/read`, {
+    method: "PATCH",
+  });
+}
+
+export async function markAllNotificationsAsRead() {
+  return apiFetch("/notifications/read-all", {
+    method: "PATCH",
+  });
+}
+
+export async function markNotificationsAsReadByContext(payload) {
+  return apiFetch("/notifications/read-by-context", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }

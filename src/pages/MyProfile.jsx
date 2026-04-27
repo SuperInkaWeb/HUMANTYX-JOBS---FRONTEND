@@ -46,6 +46,9 @@ const INITIAL_FORM = {
   country: "",
   department: "",
   city: "",
+  district: "",
+  address_line: "",
+  postal_code: "",
   birth_date: "",
   gender: "",
   marital_status: "",
@@ -59,6 +62,9 @@ const INITIAL_FORM = {
 
 export default function MyProfile() {
   const { user, refreshMe } = useAuth();
+
+  const isCandidate = user?.role === "CANDIDATE";
+  const isInternalUser = user?.role === "ADMIN" || user?.role === "RRHH";
 
   const [sectionDraft, setSectionDraft] = useState(null);
   const [academicDraft, setAcademicDraft] = useState(null);
@@ -99,23 +105,24 @@ export default function MyProfile() {
     setAcademicDraft,
     setWorkDraft,
     setSectionDraft,
+    isCandidate,
   });
 
   const safeForm = form || INITIAL_FORM;
 
   const requiredKeys = useMemo(
     () => [
-  "first_name",
-  "last_name",
-  "phone",
-  "document_type",
-  "document_number",
-  "country",
-  "department",
-  "city",
-  "birth_date",
-  "gender",
-  "marital_status",
+      "first_name",
+      "last_name",
+      "phone",
+      "document_type",
+      "document_number",
+      "country",
+      "department",
+      "city",
+      "birth_date",
+      "gender",
+      "marital_status",
     ],
     []
   );
@@ -145,7 +152,9 @@ export default function MyProfile() {
       safeForm.phone.trim() ||
       user?.email ||
       safeForm.department.trim() ||
-      safeForm.city.trim()
+      safeForm.city.trim() ||
+      safeForm.document_type.trim() ||
+      safeForm.document_number.trim()
     );
   }, [safeForm, user?.email]);
 
@@ -163,17 +172,21 @@ export default function MyProfile() {
 
   const checklist = useMemo(() => {
     const personalComplete =
-  !!safeForm.first_name?.trim() &&
-  !!safeForm.last_name?.trim() &&
-  !!safeForm.phone &&
-  !!safeForm.document_type &&
-  !!safeForm.document_number &&
-  !!safeForm.country?.trim() &&
-  !!safeForm.department?.trim() &&
-  !!safeForm.city?.trim() &&
-  !!safeForm.birth_date &&
-  !!safeForm.gender &&
-  !!safeForm.marital_status;
+      !!safeForm.first_name?.trim() &&
+      !!safeForm.last_name?.trim() &&
+      !!safeForm.phone &&
+      !!safeForm.document_type &&
+      !!safeForm.document_number &&
+      !!safeForm.country?.trim() &&
+      !!safeForm.department?.trim() &&
+      !!safeForm.city?.trim() &&
+      !!safeForm.birth_date &&
+      !!safeForm.gender &&
+      !!safeForm.marital_status;
+
+    if (!isCandidate) {
+      return [{ label: "Información personal", done: personalComplete }];
+    }
 
     const professionalComplete =
       !!safeForm.headline?.trim() &&
@@ -227,12 +240,12 @@ export default function MyProfile() {
       { label: "Experiencia laboral", done: workComplete },
       { label: "CV", done: cvComplete },
     ];
-  }, [safeForm, visibleAcademicItems, visibleWorkItems, cvInfo]);
+  }, [safeForm, visibleAcademicItems, visibleWorkItems, cvInfo, isCandidate]);
 
   const totalProfileProgress = useMemo(() => {
     const sections = checklist.map((item) => item.done);
     const completed = sections.filter(Boolean).length;
-    const pct = Math.round((completed / sections.length) * 100);
+    const pct = sections.length ? Math.round((completed / sections.length) * 100) : 0;
 
     return { pct };
   }, [checklist]);
@@ -264,6 +277,12 @@ export default function MyProfile() {
     workItemModal.open ||
     confirmState.open;
 
+  const roleLabel = isInternalUser
+    ? user?.role === "ADMIN"
+      ? "Administrador"
+      : "RRHH"
+    : "";
+
   useEffect(() => {
     document.body.style.overflow = isAnyModalOpen ? "hidden" : "";
     return () => {
@@ -282,6 +301,9 @@ export default function MyProfile() {
         "country",
         "department",
         "city",
+        "district",
+        "address_line",
+        "postal_code",
         "birth_date",
         "gender",
         "marital_status",
@@ -302,6 +324,16 @@ export default function MyProfile() {
   function openSectionModal(section, itemId = null) {
     setError("");
     setMsg("");
+
+    if (
+      !isCandidate &&
+      (section === "professional" ||
+        section === "headline" ||
+        section === "academic" ||
+        section === "work")
+    ) {
+      return;
+    }
 
     if (section === "academic") {
       openAcademicItemModal("edit", itemId);
@@ -424,7 +456,34 @@ export default function MyProfile() {
   }
 
   function validateRequired() {
-    validateFormForSave(sectionDraft || safeForm);
+    if (isCandidate) {
+      validateFormForSave(sectionDraft || safeForm);
+      return;
+    }
+
+    const profile = sectionDraft || safeForm;
+    const requiredPersonal = [
+      "first_name",
+      "last_name",
+      "phone",
+      "document_type",
+      "document_number",
+      "country",
+      "department",
+      "city",
+      "birth_date",
+      "gender",
+      "marital_status",
+    ];
+
+    const missing = requiredPersonal.filter((key) => {
+      const value = profile[key];
+      return typeof value === "string" ? !value.trim() : !value;
+    });
+
+    if (missing.length) {
+      throw new Error("Completa todos los campos obligatorios antes de continuar.");
+    }
   }
 
   async function onSave(e) {
@@ -469,18 +528,18 @@ export default function MyProfile() {
   return (
     <>
       <div className="py-4 py-lg-5 hx-profile-v2">
-        {(error || msg) && (
+        {(error || msg) && !activeModal && (
           <div className="mb-3">
             {error && <div className="alert alert-danger rounded-4 mb-2">{error}</div>}
             {msg && <div className="alert alert-success rounded-4 mb-0">{msg}</div>}
           </div>
         )}
 
-        <div className="hx-profile-layout">
+        <div className={`hx-profile-layout ${isInternalUser ? "hx-profile-layout--internal" : ""}`}>
           <div className="hx-profile-main">
             <ProfileHeader
               fullName={fullName}
-              headline={safeForm.headline}
+              headline={isCandidate ? safeForm.headline : roleLabel}
               openSectionModal={openSectionModal}
             />
 
@@ -490,40 +549,49 @@ export default function MyProfile() {
               fullName={fullName}
               hasPersonalInfo={hasPersonalInfo}
               openSectionModal={openSectionModal}
+              isInternalUser={isInternalUser}
             />
 
-            <ProfileProfessionalSection
-              hasProfessionalInfo={hasProfessionalInfo}
-              form={safeForm}
-              availabilityLabel={availabilityLabel}
-              openSectionModal={openSectionModal}
-            />
+            {isCandidate && (
+              <>
+                <ProfileProfessionalSection
+                  hasProfessionalInfo={hasProfessionalInfo}
+                  form={safeForm}
+                  availabilityLabel={availabilityLabel}
+                  openSectionModal={openSectionModal}
+                />
 
-            <ProfileAcademicSection
-              hasAcademicInfo={hasAcademicInfo}
-              visibleAcademicItems={visibleAcademicItems}
-              openAcademicSectionForAdd={openAcademicSectionForAdd}
-              openSectionModal={openSectionModal}
-              removeAcademicItem={confirmRemoveAcademicItem}
-            />
+                <ProfileAcademicSection
+                  hasAcademicInfo={hasAcademicInfo}
+                  visibleAcademicItems={visibleAcademicItems}
+                  openAcademicSectionForAdd={openAcademicSectionForAdd}
+                  openSectionModal={openSectionModal}
+                  removeAcademicItem={confirmRemoveAcademicItem}
+                />
 
-            <ProfileWorkSection
-              hasWorkInfo={hasWorkInfo}
-              visibleWorkItems={visibleWorkItems}
-              openWorkSectionForAdd={openWorkSectionForAdd}
-              openSectionModal={openSectionModal}
-              removeWorkItem={confirmRemoveWorkItem}
-            />
+                <ProfileWorkSection
+                  hasWorkInfo={hasWorkInfo}
+                  visibleWorkItems={visibleWorkItems}
+                  openWorkSectionForAdd={openWorkSectionForAdd}
+                  openSectionModal={openSectionModal}
+                  removeWorkItem={confirmRemoveWorkItem}
+                />
+              </>
+            )}
           </div>
 
-          <ProfileSidebar
-            avatarText={avatarText}
-            fullName={fullName}
-            headline={safeForm.headline}
-            totalProfileProgress={totalProfileProgress}
-            checklist={checklist}
-            requiredProgress={requiredProgress}
-          />
+          {!isInternalUser && (
+            <ProfileSidebar
+              avatarText={avatarText}
+              fullName={fullName}
+              headline={isCandidate ? safeForm.headline : ""}
+              totalProfileProgress={totalProfileProgress}
+              checklist={checklist}
+              isInternalUser={isInternalUser}
+              roleLabel={roleLabel}
+              email={user?.email || ""}
+            />
+          )}
         </div>
       </div>
 
@@ -535,45 +603,50 @@ export default function MyProfile() {
         form={modalForm}
         onChange={onChange}
         onDocumentTypeChange={onDocumentTypeChange}
-      />
-
-      <HeadlineModal
-        isOpen={activeModal === "headline"}
-        closeModal={closeSectionModal}
-        onSave={onSave}
-        saving={saving}
-        form={modalForm}
-        onChange={onChange}
-      />
-
-      <ProfessionalInfoModal
-        isOpen={activeModal === "professional"}
-        closeModal={closeSectionModal}
-        onSave={onSave}
-        saving={saving}
-        form={modalForm}
-        onChange={onChange}
-      />
-
-      <AcademicItemModal
-        isOpen={academicItemModal.open}
-        closeModal={closeAcademicItemModal}
-        item={currentAcademicItem}
-        mode={academicItemModal.mode}
-        onAcademicChange={onAcademicDraftChange}
-        onSaveDraft={saveAcademicDraft}
         error={error}
       />
 
-      <WorkItemModal
-        isOpen={workItemModal.open}
-        closeModal={closeWorkItemModal}
-        item={currentWorkItem}
-        mode={workItemModal.mode}
-        onWorkChange={onWorkDraftChange}
-        onSaveDraft={saveWorkDraft}
-        error={error}
-      />
+      {isCandidate && (
+        <>
+          <HeadlineModal
+            isOpen={activeModal === "headline"}
+            closeModal={closeSectionModal}
+            onSave={onSave}
+            saving={saving}
+            form={modalForm}
+            onChange={onChange}
+          />
+
+          <ProfessionalInfoModal
+            isOpen={activeModal === "professional"}
+            closeModal={closeSectionModal}
+            onSave={onSave}
+            saving={saving}
+            form={modalForm}
+            onChange={onChange}
+          />
+
+          <AcademicItemModal
+            isOpen={academicItemModal.open}
+            closeModal={closeAcademicItemModal}
+            item={currentAcademicItem}
+            mode={academicItemModal.mode}
+            onAcademicChange={onAcademicDraftChange}
+            onSaveDraft={saveAcademicDraft}
+            error={error}
+          />
+
+          <WorkItemModal
+            isOpen={workItemModal.open}
+            closeModal={closeWorkItemModal}
+            item={currentWorkItem}
+            mode={workItemModal.mode}
+            onWorkChange={onWorkDraftChange}
+            onSaveDraft={saveWorkDraft}
+            error={error}
+          />
+        </>
+      )}
 
       <ConfirmModal
         isOpen={confirmState.open}

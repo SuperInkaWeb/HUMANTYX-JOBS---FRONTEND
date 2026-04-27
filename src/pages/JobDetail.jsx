@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { apiFetch } from "../services/api";
 import "./job-detail.css";
+import { formatEmploymentType } from "../utils/jobs";
 
 function formatDate(dateString) {
   if (!dateString) return "—";
@@ -20,7 +21,7 @@ function mapApplicationStatus(status) {
     APPLIED: "Solicitud enviada",
     IN_REVIEW: "En revisión",
     INTERVIEW: "Entrevista",
-    REJECTED: "Postulación rechazada",
+    REJECTED: "No seleccionado",
     HIRED: "Contratado",
   };
 
@@ -35,6 +36,19 @@ function mapJobStatus(status) {
   };
 
   return map[status] || status || "No especificado";
+}
+
+function renderJobDescription(description) {
+  if (!description) {
+    return <p>No hay descripción disponible.</p>;
+  }
+
+  return (
+    <div
+      className="jobdetail-richtext"
+      dangerouslySetInnerHTML={{ __html: description }}
+    />
+  );
 }
 
 export default function JobDetail() {
@@ -109,11 +123,7 @@ export default function JobDetail() {
         <article className="jobdetail-card">
           <div className="jobdetail-hero-top">
             <div className="jobdetail-brand">
-              
-
               <div className="jobdetail-brand-info">
-                
-
                 <h1 className="jobdetail-title">
                   {job.title || "Sin título"}
                 </h1>
@@ -161,7 +171,7 @@ export default function JobDetail() {
               <div>
                 <span className="jobdetail-info-label">Tipo de empleo</span>
                 <strong className="jobdetail-info-value">
-                  {job.employment_type || "No especificado"}
+                  {formatEmploymentType(job.employment_type)}
                 </strong>
               </div>
             </div>
@@ -202,13 +212,7 @@ export default function JobDetail() {
           <div className="jobdetail-divider"></div>
 
           <div className="jobdetail-description">
-            {job.description ? (
-              job.description.split("\n").map((line, index) => (
-                <p key={index}>{line.trim() || "\u00A0"}</p>
-              ))
-            ) : (
-              <p>No hay descripción disponible.</p>
-            )}
+            {renderJobDescription(job.description)}
           </div>
         </article>
       </div>

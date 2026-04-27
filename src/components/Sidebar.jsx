@@ -51,7 +51,7 @@ export default function Sidebar() {
       <div>
         <div className="hx-sidebar__logo-block">
         <div className="hx-sidebar__logo">
-        <img src="/logo-humantyx-jobs.png" alt="Humantyx Jobs" />
+        <img src="/logo-oficial.png" alt="Humantyx Jobs"  style={{ height: 100, width: "auto" }}/>
         </div>
 
         <div className="hx-sidebar__section-title">
@@ -81,6 +81,8 @@ export default function Sidebar() {
             </Link>
           )}
 
+          
+
           {isAdmin && (
             <Link
               to="/rrhh/invitar"
@@ -88,6 +90,26 @@ export default function Sidebar() {
             >
               <i className="bi bi-person-plus"></i>
               <span>Invitar usuario</span>
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              to="/rrhh/invitaciones"
+              className={`hx-sidebar__item ${isActive("/rrhh/invitaciones") ? "active" : ""}`}
+            >
+              <i className="bi bi-envelope-paper"></i>
+              <span>Invitaciones</span>
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              to="/rrhh/usuarios"
+              className={`hx-sidebar__item ${isActive("/rrhh/usuarios") ? "active" : ""}`}
+            >
+              <i className="bi bi-person-gear"></i>
+              <span>Usuarios RRHH</span>
             </Link>
           )}
         </nav>

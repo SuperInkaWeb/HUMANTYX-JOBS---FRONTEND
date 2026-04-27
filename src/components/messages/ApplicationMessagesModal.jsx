@@ -26,6 +26,16 @@ export default function ApplicationMessagesModal({
 }) {
   const [messageText, setMessageText] = useState("");
   const messagesScrollRef = useRef(null);
+  const shouldStickToBottomRef = useRef(true);
+  const prevMessagesLengthRef = useRef(0);
+
+  function isNearBottom() {
+    const el = messagesScrollRef.current;
+    if (!el) return true;
+
+    const threshold = 100;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+  }
 
   function jumpToBottom() {
     requestAnimationFrame(() => {
@@ -35,6 +45,24 @@ export default function ApplicationMessagesModal({
     });
   }
 
+  function forceJumpToBottom() {
+    requestAnimationFrame(() => {
+      const el = messagesScrollRef.current;
+      if (!el) return;
+      el.scrollTop = el.scrollHeight;
+
+      setTimeout(() => {
+        const latestEl = messagesScrollRef.current;
+        if (!latestEl) return;
+        latestEl.scrollTop = latestEl.scrollHeight;
+      }, 80);
+    });
+  }
+
+  function handleScroll() {
+    shouldStickToBottomRef.current = isNearBottom();
+  }
+
   useEffect(() => {
     if (!show) return;
     setMessageText("");
@@ -42,14 +70,25 @@ export default function ApplicationMessagesModal({
 
   useEffect(() => {
     if (!show) return;
-    jumpToBottom();
-  }, [show]);
+
+    shouldStickToBottomRef.current = true;
+    prevMessagesLengthRef.current = messages.length;
+    forceJumpToBottom();
+  }, [show, conversation?.id]);
 
   useEffect(() => {
     if (!show) return;
-    if (!messages?.length) return;
-    jumpToBottom();
-  }, [messages.length, show]);
+
+    const currentLength = messages.length;
+    const prevLength = prevMessagesLengthRef.current;
+    const hasNewMessages = currentLength > prevLength;
+
+    if (hasNewMessages && shouldStickToBottomRef.current) {
+      forceJumpToBottom();
+    }
+
+    prevMessagesLengthRef.current = currentLength;
+  }, [messages, show]);
 
   const headerSubtitle = useMemo(() => {
     if (!application) return "";
@@ -75,8 +114,10 @@ export default function ApplicationMessagesModal({
     if (!trimmed || !canSend || sending) return;
 
     try {
+      shouldStickToBottomRef.current = true;
       await onSend?.(trimmed);
       setMessageText("");
+      forceJumpToBottom();
     } catch {
       // el error ya lo maneja el padre
     }
@@ -105,7 +146,11 @@ export default function ApplicationMessagesModal({
           </button>
         </div>
 
-        <div className="hx-msg-body" ref={messagesScrollRef}>
+        <div
+          className="hx-msg-body"
+          ref={messagesScrollRef}
+          onScroll={handleScroll}
+        >
           {loading ? (
             <div className="hx-msg-empty">Cargando mensajes...</div>
           ) : error ? (

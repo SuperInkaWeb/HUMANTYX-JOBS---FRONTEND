@@ -10,16 +10,12 @@ function renderDescription(description) {
     );
   }
 
-  return description.split("\n").map((line, index) => {
-    const trimmed = line.trim();
-    if (!trimmed) return null;
-
-    return (
-      <p key={index} className="job-detail-panel__paragraph">
-        {trimmed}
-      </p>
-    );
-  });
+  return (
+    <div
+      className="job-detail-panel__richtext"
+      dangerouslySetInnerHTML={{ __html: description }}
+    />
+  );
 }
 
 export default function JobDetailPanel({

@@ -41,33 +41,51 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   async function login(email, password) {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const data = await apiFetch("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+      const data = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
 
-    const u = await loadMe(data.token);
-    return u;
+      const u = await loadMe(data.token);
+      return u;
+    } catch (err) {
+      localStorage.removeItem("token");
+      setToken("");
+      setUser(null);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function register(email, password) {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const data = await apiFetch("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+      const data = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
 
-    const u = await loadMe(data.token);
-    return u;
+      const u = await loadMe(data.token);
+      return u;
+    } catch (err) {
+      localStorage.removeItem("token");
+      setToken("");
+      setUser(null);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }
 
   function logout() {

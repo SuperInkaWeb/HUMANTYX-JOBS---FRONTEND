@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { apiFetch } from "../../services/api";
+import { apiFetch, markNotificationsAsReadByContext } from "../../services/api";
 import "./admin-job-applications.css";
 
 import ApplicationMessagesModal from "../../components/messages/ApplicationMessagesModal";
@@ -14,11 +14,13 @@ const STATUS_META = {
   APPLIED: { label: "Postuló", cls: "is-applied" },
   IN_REVIEW: { label: "En revisión", cls: "is-review" },
   INTERVIEW: { label: "Entrevista", cls: "is-interview" },
-  REJECTED: { label: "Rechazado", cls: "is-rejected" },
+  REJECTED: { label: "No Seleccionado", cls: "is-rejected" },
   HIRED: { label: "Contratado", cls: "is-hired" },
 };
 
 const STATUS_ORDER = ["APPLIED", "IN_REVIEW", "INTERVIEW", "REJECTED", "HIRED"];
+const CHAT_POLL_MS = 5000;
+const LIST_POLL_MS = 15000;
 
 function getInitials(firstName, lastName, email) {
   const fullName = `${firstName || ""} ${lastName || ""}`.trim();
@@ -140,7 +142,9 @@ function StatusDropdown({ value, onChange, disabled }) {
                   setOpen(false);
                 }}
                 disabled={disabled}
-                className={`hja-status-menu__item ${isSelected ? "is-selected" : ""}`}
+                className={`hja-status-menu__item ${
+                  isSelected ? "is-selected" : ""
+                }`}
               >
                 <span className={`hja-status-menu__dot ${m.cls}`}></span>
                 <span className="hja-status-menu__label">{m.label}</span>
@@ -259,7 +263,9 @@ function CvPreviewModal({
               <iframe
                 title="Vista previa del CV"
                 src={blobUrl}
-                className={`hja-modal__iframe ${!frameReady ? "is-hidden" : ""}`}
+                className={`hja-modal__iframe ${
+                  !frameReady ? "is-hidden" : ""
+                }`}
                 onLoad={() => setFrameReady(true)}
               />
             </>
@@ -274,7 +280,11 @@ function CvPreviewModal({
               onClick={onDownload}
               disabled={!canDownload || downloading}
             >
-              <i className={`bi ${downloading ? "bi-hourglass-split" : "bi-download"}`}></i>
+              <i
+                className={`bi ${
+                  downloading ? "bi-hourglass-split" : "bi-download"
+                }`}
+              ></i>
               <span>{downloading ? "Descargando..." : "Descargar CV"}</span>
             </button>
 
@@ -336,34 +346,54 @@ export default function AdminJobApplications() {
   });
   const [messagesApplicationInfo, setMessagesApplicationInfo] = useState(null);
 
-  async function loadApplicationMessages(applicationId) {
-    setMessagesLoading(true);
-    setMessagesError("");
+  const loadApplicationMessages = useCallback(
+    async (applicationId, { silent = false } = {}) => {
+      if (!applicationId) return;
 
-    try {
-      const data = await getAdminApplicationMessages(applicationId);
+      if (!silent) {
+        setMessagesLoading(true);
+        setMessagesError("");
+      }
 
-      setMessagesConversation(data.conversation || null);
-      setMessagesList(Array.isArray(data.messages) ? data.messages : []);
-      setMessagesPermissions(data.permissions || { can_send: false });
-      setMessagesApplicationInfo(data.application || null);
-    } catch (err) {
-      setMessagesError(err.message || "No se pudieron cargar los mensajes");
-      setMessagesConversation(null);
-      setMessagesList([]);
-      setMessagesPermissions({ can_send: false });
-      setMessagesApplicationInfo(null);
-    } finally {
-      setMessagesLoading(false);
-    }
-  }
+      try {
+        const data = await getAdminApplicationMessages(applicationId);
+
+        setMessagesConversation(data.conversation || null);
+        setMessagesList(Array.isArray(data.messages) ? data.messages : []);
+        setMessagesPermissions(data.permissions || { can_send: false });
+        setMessagesApplicationInfo(data.application || null);
+      } catch (err) {
+        if (!silent) {
+          setMessagesError(err.message || "No se pudieron cargar los mensajes");
+          setMessagesConversation(null);
+          setMessagesList([]);
+          setMessagesPermissions({ can_send: false });
+          setMessagesApplicationInfo(null);
+        }
+      } finally {
+        if (!silent) {
+          setMessagesLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   async function handleOpenMessages(applicationRow) {
     setSelectedApplicationForMessages(applicationRow);
     setShowMessagesModal(true);
 
+    try {
+      await markNotificationsAsReadByContext({
+        type: "NEW_MESSAGE",
+        application_id: applicationRow.application_id,
+      });
+    } catch {
+      // silencioso
+    }
+
     await loadApplicationMessages(applicationRow.application_id);
-    await loadAll();
+    await loadAll(true);
   }
 
   function handleCloseMessages() {
@@ -389,7 +419,7 @@ export default function AdminJobApplications() {
       );
 
       await loadApplicationMessages(selectedApplicationForMessages.application_id);
-      await loadAll();
+      await loadAll(true);
     } catch (err) {
       setMessagesError(err.message || "No se pudo enviar el mensaje");
     } finally {
@@ -397,34 +427,98 @@ export default function AdminJobApplications() {
     }
   }
 
-  async function loadAll() {
-    try {
-      setError("");
-      setMsg("");
-      setLoading(true);
-
-      const apps = await apiFetch(`/admin/jobs/${jobId}/applications`);
-      const list = apps?.applications ?? apps ?? [];
-      setRows(Array.isArray(list) ? list : []);
-      setPendingStatusByApp({});
-
+  const loadAll = useCallback(
+    async (silent = false) => {
       try {
-        const j = await apiFetch(`/admin/jobs/${jobId}`);
-        setJob(j?.job ?? j ?? null);
-      } catch {
-        setJob(null);
+        if (!silent) {
+          setError("");
+          setMsg("");
+          setLoading(true);
+        }
+
+        const apps = await apiFetch(`/admin/jobs/${jobId}/applications`);
+        const list = apps?.applications ?? apps ?? [];
+        setRows(Array.isArray(list) ? list : []);
+
+        if (!silent) {
+          setPendingStatusByApp({});
+        }
+
+        try {
+          const j = await apiFetch(`/admin/jobs/${jobId}`);
+          setJob(j?.job ?? j ?? null);
+        } catch {
+          setJob(null);
+        }
+      } catch (e) {
+        if (!silent) {
+          setError(e.message || "No se pudieron cargar los postulantes");
+          setRows([]);
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
       }
-    } catch (e) {
-      setError(e.message || "No se pudieron cargar los postulantes");
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+    [jobId]
+  );
 
   useEffect(() => {
     loadAll();
-  }, [jobId]);
+  }, [loadAll]);
+
+  useEffect(() => {
+    if (!showMessagesModal || !selectedApplicationForMessages?.application_id)
+      return;
+
+    async function pollChat() {
+      if (document.visibilityState !== "visible") return;
+
+      await loadApplicationMessages(
+        selectedApplicationForMessages.application_id,
+        {
+          silent: true,
+        }
+      );
+      await loadAll(true);
+    }
+
+    const interval = setInterval(pollChat, CHAT_POLL_MS);
+
+    return () => clearInterval(interval);
+  }, [
+    showMessagesModal,
+    selectedApplicationForMessages?.application_id,
+    loadApplicationMessages,
+    loadAll,
+  ]);
+
+  useEffect(() => {
+    async function pollList() {
+      if (document.visibilityState !== "visible") return;
+      if (showMessagesModal) return;
+
+      await loadAll(true);
+    }
+
+    const interval = setInterval(pollList, LIST_POLL_MS);
+
+    return () => clearInterval(interval);
+  }, [showMessagesModal, loadAll]);
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+      loadAll(true);
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadAll]);
 
   useEffect(() => {
     return () => {
@@ -508,7 +602,10 @@ export default function AdminJobApplications() {
     });
   }
 
-  function getSafeFileNameFromHeaders(contentDisposition, fallbackName = "cv.pdf") {
+  function getSafeFileNameFromHeaders(
+    contentDisposition,
+    fallbackName = "cv.pdf"
+  ) {
     if (!contentDisposition) return fallbackName;
 
     const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
@@ -638,11 +735,15 @@ export default function AdminJobApplications() {
     });
 
     try {
-      const { blobUrl, fileName } = await fetchPreviewBlob(candidate.candidate_id);
+      const { blobUrl, fileName } = await fetchPreviewBlob(
+        candidate.candidate_id
+      );
       setPreviewBlobUrl(blobUrl);
       setPreviewFileName(fileName);
     } catch (e) {
-      setPreviewError(e.message || "No se pudo cargar la vista previa del CV.");
+      setPreviewError(
+        e.message || "No se pudo cargar la vista previa del CV."
+      );
     } finally {
       setPreviewLoading(false);
       setOpeningPreviewId(null);
@@ -694,7 +795,9 @@ export default function AdminJobApplications() {
 
           <div className="hja-job-meta">
             <span className="hja-job-meta__badge">Vacante</span>
-            <span className="hja-job-meta__title">{job?.title || `ID ${jobId}`}</span>
+            <span className="hja-job-meta__title">
+              {job?.title || `ID ${jobId}`}
+            </span>
           </div>
         </div>
 
@@ -707,7 +810,7 @@ export default function AdminJobApplications() {
           <button
             type="button"
             className="hja-btn hja-btn--primary"
-            onClick={loadAll}
+            onClick={() => loadAll()}
             disabled={loading}
           >
             <i className="bi bi-arrow-clockwise"></i>
@@ -727,8 +830,8 @@ export default function AdminJobApplications() {
           </div>
           <h3>Aún no hay postulaciones para esta vacante</h3>
           <p>
-            Cuando los candidatos postulen, aparecerán aquí para que puedas revisar
-            su perfil, su CV y gestionar su estado.
+            Cuando los candidatos postulen, aparecerán aquí para que puedas
+            revisar su perfil, su CV y gestionar su estado.
           </p>
         </div>
       )}
@@ -751,19 +854,6 @@ export default function AdminJobApplications() {
 
               const displayStatus = pendingStatus || r.application_status;
               const hasPendingStatusChange = Boolean(pendingStatus);
-
-              const currentMeta =
-                STATUS_META[r.application_status] || {
-                  label: r.application_status ?? "—",
-                  cls: "",
-                };
-
-              const pendingMeta = pendingStatus
-                ? STATUS_META[pendingStatus] || {
-                    label: pendingStatus,
-                    cls: "",
-                  }
-                : null;
 
               return (
                 <article key={r.application_id} className="hja-app-card">
@@ -821,7 +911,9 @@ export default function AdminJobApplications() {
                             <button
                               type="button"
                               className="hja-inline-btn hja-inline-btn--ghost"
-                              onClick={() => cancelDraftStatus(r.application_id)}
+                              onClick={() =>
+                                cancelDraftStatus(r.application_id)
+                              }
                               disabled={disabledStatus}
                             >
                               Cancelar
@@ -851,7 +943,9 @@ export default function AdminJobApplications() {
                       >
                         <i
                           className={`bi ${
-                            openingThisPreview ? "bi-hourglass-split" : "bi-download"
+                            openingThisPreview
+                              ? "bi-hourglass-split"
+                              : "bi-download"
                           }`}
                         ></i>
                       </button>

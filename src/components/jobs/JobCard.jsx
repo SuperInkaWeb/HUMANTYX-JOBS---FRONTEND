@@ -1,11 +1,13 @@
+import { formatEmploymentType } from "../../utils/jobs";
+
 function formatPostedTime(dateString) {
   if (!dateString) return "";
 
-  const created = new Date(dateString);
-  if (Number.isNaN(created.getTime())) return "";
+  const published = new Date(dateString);
+  if (Number.isNaN(published.getTime())) return "";
 
   const now = new Date();
-  const diffMs = now - created;
+  const diffMs = now - published;
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays <= 0) return "Publicado hoy";
@@ -18,7 +20,7 @@ function formatPostedTime(dateString) {
 }
 
 export default function JobCard({ job, active, onSelect }) {
-  const postedText = formatPostedTime(job.created_at);
+  const postedText = formatPostedTime(job.published_at || job.created_at);
 
   return (
     <button
@@ -40,7 +42,7 @@ export default function JobCard({ job, active, onSelect }) {
         {job.location ? <span className="jobs-card__chip">{job.location}</span> : null}
         {job.employment_type ? (
           <span className="jobs-card__chip jobs-card__chip--muted">
-            {job.employment_type}
+            {formatEmploymentType(job.employment_type)}
           </span>
         ) : null}
       </div>

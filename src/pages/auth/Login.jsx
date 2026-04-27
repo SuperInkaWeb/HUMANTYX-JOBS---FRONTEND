@@ -1,15 +1,19 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import "./auth.css";
 
 export default function Login() {
   const nav = useNavigate();
+  const loc = useLocation();
   const { login } = useAuth();
+
+  const flashMessage = loc.state?.flashMessage || "";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e) {
@@ -17,6 +21,7 @@ export default function Login() {
 
     try {
       setError("");
+      setErrorType("");
       setLoading(true);
 
       const u = await login(email, password);
@@ -24,14 +29,44 @@ export default function Login() {
       if (!u) return nav("/empleos");
 
       if (u.role === "CANDIDATE" && u.profile_complete === false) {
-       return nav("/completar-perfil");
+        return nav("/completar-perfil");
       }
 
       return nav("/empleos");
     } catch (e2) {
-      setError(e2.message || "No se pudo iniciar sesión");
+      const errorCode = e2?.code || e2?.data?.code;
+      const errorStatus = e2?.status;
+      const errorMessage = e2?.message || "";
+
+      if (
+        errorCode === "USER_DISABLED" ||
+        (errorStatus === 403 &&
+          errorMessage.toLowerCase().includes("deshabilitada"))
+      ) {
+        setErrorType("disabled");
+        setError("Tu cuenta está deshabilitada.");
+      } else {
+        setErrorType("default");
+        setError(errorMessage || "No se pudo iniciar sesión");
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleEmailChange(e) {
+    setEmail(e.target.value);
+    if (error) {
+      setError("");
+      setErrorType("");
+    }
+  }
+
+  function handlePasswordChange(e) {
+    setPassword(e.target.value);
+    if (error) {
+      setError("");
+      setErrorType("");
     }
   }
 
@@ -44,9 +79,33 @@ export default function Login() {
               <h1 className="hx-auth-title">Iniciar sesión</h1>
             </div>
 
+            {flashMessage && (
+              <div
+                className="hx-auth-alert-custom hx-auth-alert-custom--warning"
+                role="alert"
+              >
+                <i className="bi bi-info-circle-fill"></i>
+                <span>{flashMessage}</span>
+              </div>
+            )}
+
             {error && (
-              <div className="alert alert-danger hx-auth-alert" role="alert">
-                {error}
+              <div
+                className={`hx-auth-alert-custom ${
+                  errorType === "disabled"
+                    ? "hx-auth-alert-custom--warning"
+                    : "hx-auth-alert-custom--error"
+                }`}
+                role="alert"
+              >
+                <i
+                  className={`bi ${
+                    errorType === "disabled"
+                      ? "bi-shield-lock-fill"
+                      : "bi-exclamation-circle-fill"
+                  }`}
+                ></i>
+                <span>{error}</span>
               </div>
             )}
 
@@ -60,7 +119,7 @@ export default function Login() {
                     className="hx-auth-input"
                     placeholder="Ingresa tu correo"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={handleEmailChange}
                     disabled={loading}
                   />
                 </div>
@@ -75,10 +134,16 @@ export default function Login() {
                     className="hx-auth-input"
                     placeholder="Ingresa tu contraseña"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handlePasswordChange}
                     disabled={loading}
                   />
                 </div>
+              </div>
+
+              <div className="hx-auth-forgot">
+                <Link to="/forgot-password" className="hx-auth-forgot__link">
+                  ¿Olvidaste tu contraseña?
+                </Link>
               </div>
 
               <button className="hx-auth-submit" type="submit" disabled={loading}>

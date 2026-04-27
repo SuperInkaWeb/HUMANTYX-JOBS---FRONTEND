@@ -6,6 +6,9 @@ export default function ProfileSidebar({
   headline,
   totalProfileProgress,
   checklist,
+  isInternalUser = false,
+  roleLabel = "",
+  email = "",
 }) {
   const pct = totalProfileProgress?.pct ?? 0;
 
@@ -13,6 +16,28 @@ export default function ProfileSidebar({
     if (pct <= 40) return "#ef4444";
     if (pct <= 80) return "#f59e0b";
     return "#10b981";
+  }
+
+  if (isInternalUser) {
+    return (
+      <aside className="hx-profile-side">
+        <section className="hx-profile-shell-card hx-profile-side-top">
+          <div className="hx-profile-avatar-lg">{avatarText}</div>
+
+          <h3 className="hx-profile-side-name">{fullName}</h3>
+          <p className="hx-profile-side-headline">
+            {roleLabel || "Usuario interno"}
+          </p>
+
+          <div className="hx-profile-side-meta">
+            <div className="hx-profile-side-meta-item">
+              <strong>Correo</strong>
+              <span>{email || "Pendiente"}</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    );
   }
 
   return (

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { apiFetch } from "../../services/api";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
+import RichTextEditor from "../../components/shared/RichTextEditor";
+import "../../components/shared/rich-text-editor.css";
 import "./admin-job-form.css";
 
 const JOB_STATUS_OPTIONS = [
@@ -26,15 +28,52 @@ const EMPTY_FORM = {
   status: "",
 };
 
+function stripHtml(html) {
+  return String(html || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeHtml(html) {
+  return String(html || "").trim();
+}
+
 function normalizeForm(data) {
   return {
     title: String(data?.title || "").trim(),
     location: String(data?.location || "").trim(),
     employment_type: String(data?.employment_type || "").trim(),
     salary_range: String(data?.salary_range || "").trim(),
-    description: String(data?.description || "").trim(),
+    description: normalizeHtml(data?.description || ""),
     status: String(data?.status || "").trim(),
   };
+}
+
+function normalizeEmploymentType(value) {
+  const raw = String(value || "").trim();
+
+  const map = {
+    internship: "internship",
+    practicas: "internship",
+    "prácticas": "internship",
+
+    full_time: "full_time",
+    "full-time": "full_time",
+    "tiempo completo": "full_time",
+
+    part_time: "part_time",
+    "part-time": "part_time",
+    "medio tiempo": "part_time",
+
+    contract: "contract",
+    contrato: "contract",
+  };
+
+  return map[raw.toLowerCase()] || raw;
 }
 
 export default function AdminJobForm({
@@ -84,7 +123,7 @@ export default function AdminJobForm({
         const next = {
           title: job?.title ?? "",
           location: job?.location ?? "",
-          employment_type: job?.employment_type ?? "",
+          employment_type: normalizeEmploymentType(job?.employment_type),
           salary_range: job?.salary_range ?? "",
           description: job?.description ?? "",
           status: job?.status ?? "",
@@ -138,18 +177,36 @@ export default function AdminJobForm({
     setMsg("");
   }
 
+  function onDescriptionChange(nextHtml) {
+    setForm((prev) => ({
+      ...prev,
+      description: nextHtml,
+    }));
+
+    setFieldErrors((prev) => ({
+      ...prev,
+      description: "",
+    }));
+
+    setError("");
+    setMsg("");
+  }
+
   function validateForm() {
     const cleaned = normalizeForm(form);
     const nextErrors = {};
 
     if (!cleaned.title) nextErrors.title = "El título es obligatorio.";
     if (!cleaned.location) nextErrors.location = "La ubicación es obligatoria.";
-    if (!cleaned.employment_type)
+    if (!cleaned.employment_type) {
       nextErrors.employment_type = "Selecciona el tipo de empleo.";
-    if (!cleaned.salary_range)
+    }
+    if (!cleaned.salary_range) {
       nextErrors.salary_range = "El rango salarial es obligatorio.";
-    if (!cleaned.description)
+    }
+    if (!stripHtml(cleaned.description)) {
       nextErrors.description = "La descripción es obligatoria.";
+    }
     if (!cleaned.status) nextErrors.status = "Selecciona el estado.";
 
     setFieldErrors(nextErrors);
@@ -424,18 +481,15 @@ export default function AdminJobForm({
                 <div className="ajf-grid ajf-grid--single">
                   <div className="ajf-field">
                     <label htmlFor="description">Descripción del puesto</label>
-                    <textarea
+
+                    <RichTextEditor
                       id="description"
-                      className={`ajf-textarea ${
-                        fieldErrors.description ? "is-invalid" : ""
-                      }`}
-                      name="description"
                       value={form.description}
-                      onChange={onChange}
-                      rows={7}
+                      onChange={onDescriptionChange}
+                      invalid={Boolean(fieldErrors.description)}
                       placeholder="Describe el rol, responsabilidades, requisitos y beneficios..."
-                      aria-invalid={Boolean(fieldErrors.description)}
                     />
+
                     {fieldErrors.description && (
                       <span className="ajf-field-error">
                         {fieldErrors.description}

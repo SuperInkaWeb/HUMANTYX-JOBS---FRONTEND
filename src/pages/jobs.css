@@ -763,3 +763,46 @@
     font-size: 16px;
   }
 }
+
+.job-detail-panel__richtext h1,
+.job-detail-panel__richtext h2,
+.job-detail-panel__richtext h3,
+.job-detail-panel__richtext h4,
+.job-detail-panel__richtext h5,
+.job-detail-panel__richtext h6 {
+  margin: 0 0 14px;
+  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.job-detail-panel__richtext p {
+  margin: 0 0 14px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.job-detail-panel__richtext ul,
+.job-detail-panel__richtext ol {
+  margin: 0 0 14px 22px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.job-detail-panel__richtext li {
+  margin-bottom: 8px;
+}
+
+.job-detail-panel__richtext strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.job-detail-panel__richtext em {
+  font-style: italic;
+}
+
+.job-detail-panel__richtext a {
+  color: #0ea5b7;
+  text-decoration: underline;
+}

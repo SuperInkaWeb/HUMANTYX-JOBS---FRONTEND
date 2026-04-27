@@ -15,6 +15,7 @@ export default function useProfilePersistence({
   setAcademicDraft,
   setWorkDraft,
   setSectionDraft,
+  isCandidate = false,
 }) {
   const [form, setForm] = useState(null);
   const [cvInfo, setCvInfo] = useState(null);
@@ -27,7 +28,7 @@ export default function useProfilePersistence({
   useEffect(() => {
     loadInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isCandidate]);
 
   async function loadInitialData() {
     try {
@@ -35,10 +36,10 @@ export default function useProfilePersistence({
       setMsg("");
       setLoading(true);
 
-      const [me, cv] = await Promise.all([
-        apiFetch("/auth/me"),
-        getCvInfo().catch(() => null),
-      ]);
+      const mePromise = apiFetch("/auth/me");
+      const cvPromise = isCandidate ? getCvInfo().catch(() => null) : Promise.resolve(null);
+
+      const [me, cv] = await Promise.all([mePromise, cvPromise]);
 
       const u = me?.user || me || {};
       setForm(mapProfileFromApi(u));
@@ -51,11 +52,18 @@ export default function useProfilePersistence({
   }
 
   async function reloadCvInfo() {
+    if (!isCandidate) {
+      setCvInfo(null);
+      return;
+    }
+
     const latestCv = await getCvInfo().catch(() => null);
     setCvInfo(latestCv || null);
   }
 
-  function validateFormForSave(sourceForm) {
+  function validateFormForSaveByRole(sourceForm) {
+    if (!isCandidate) return;
+
     validateRequiredForForm(sourceForm, {
       isAcademicItemEmpty,
       isWorkItemEmpty,
@@ -70,7 +78,7 @@ export default function useProfilePersistence({
     setMsg("");
 
     try {
-      validateFormForSave(nextForm);
+      validateFormForSaveByRole(nextForm);
 
       const payload = buildProfilePayload(nextForm);
 
@@ -83,7 +91,10 @@ export default function useProfilePersistence({
       setForm(mapProfileFromApi(p));
 
       await refreshMe();
-      await reloadCvInfo();
+
+      if (isCandidate) {
+        await reloadCvInfo();
+      }
 
       setMsg(successMessage);
     } catch (e) {
@@ -100,7 +111,7 @@ export default function useProfilePersistence({
     setMsg("");
 
     try {
-      validateFormForSave(sourceForm);
+      validateFormForSaveByRole(sourceForm);
 
       const payload = buildProfilePayload(sourceForm);
 
@@ -113,7 +124,10 @@ export default function useProfilePersistence({
       setForm(mapProfileFromApi(p));
 
       await refreshMe();
-      await reloadCvInfo();
+
+      if (isCandidate) {
+        await reloadCvInfo();
+      }
 
       setMsg("✅ Perfil guardado correctamente.");
 
@@ -142,7 +156,7 @@ export default function useProfilePersistence({
     setMsg,
     persistProfile,
     saveProfileNow,
-    validateFormForSave,
+    validateFormForSave: validateFormForSaveByRole,
     reloadCvInfo,
   };
 }
