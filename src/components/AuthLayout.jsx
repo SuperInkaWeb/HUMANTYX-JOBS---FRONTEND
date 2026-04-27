@@ -8,9 +8,10 @@ export default function AuthLayout() {
       <div className="hx-auth-layout__logo">
         <Link to="/">
           <img
-            src="/logo-humantyx-jobs-nobg.png"
+            src="/logo-oficial.png"
             alt="Humantyx"
             className="hx-auth-logo"
+            
           />
         </Link>
       </div>
