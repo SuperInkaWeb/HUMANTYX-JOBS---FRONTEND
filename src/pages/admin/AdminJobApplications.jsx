@@ -667,12 +667,15 @@ export default function AdminJobApplications() {
     const token = localStorage.getItem("token") || "";
     const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-    const response = await fetch(`${apiBase}/admin/candidates/${candidateId}/cv`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${apiBase}/admin/jobs/${jobId}/candidates/${candidateId}/cv`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     const contentType = response.headers.get("content-type") || "";
 

@@ -1,7 +1,6 @@
 .hcp-page {
   width: 100%;
   min-height: 100vh;
-
   background:
     radial-gradient(
       900px 360px at 50% -10%,
@@ -15,9 +14,71 @@
     );
 }
 
+.hcp-page .hx-profile-layout,
+.hcp-page .hx-profile-main,
+.hcp-page .hx-profile-side {
+  background: transparent;
+}
 
+.hcp-state-wrap {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 48px 0;
+}
 
+/* Botón volver corregido */
+.hcp-profile-back-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0 0 26px;
+}
 
+.hcp-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 16px;
+  border: 1px solid #e2ebf0;
+  background: #ffffff;
+  color: #172033;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.hcp-back-btn:hover {
+  transform: translateY(-1px);
+  border-color: #cbdde6;
+  background: #fbfdfe;
+  color: #172033;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.hcp-back-btn i {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.hcp-back-btn span {
+  line-height: 1;
+}
+
+.hcp-profile-hero {
+  margin-bottom: 34px;
+}
+
+/* Compatibilidad con estados antiguos */
 .hcp-topbar {
   display: flex;
   align-items: flex-start;
@@ -124,24 +185,6 @@
   word-break: break-word;
 }
 
-@media (max-width: 991px) {
-  .hcp-topbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .hcp-title {
-    font-size: 34px;
-  }
-}
-
-.hcp-page .hx-profile-layout,
-.hcp-page .hx-profile-main,
-.hcp-page .hx-profile-side {
-  background: transparent;
-}
-
-
 .hcp-topbar-left {
   display: flex;
   flex-direction: column;
@@ -153,10 +196,12 @@
   justify-content: flex-end;
 }
 
+/* Card de CV */
 .hcp-cv-card {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 20px;
 }
 
 .hcp-cv-card__text {
@@ -203,19 +248,12 @@
   line-height: 1.45;
 }
 
-/* Card base */
-.hcp-cv-card {
-  padding: 20px;
-}
-
-/* Layout horizontal */
 .hcp-cv-card__content {
   display: flex;
   align-items: center;
   gap: 18px;
 }
 
-/* Icono izquierdo */
 .hcp-cv-card__icon {
   width: 72px;
   height: 72px;
@@ -232,7 +270,6 @@
   color: #5f7f87;
 }
 
-/* Badge PDF */
 .hcp-cv-card__badge {
   position: absolute;
   bottom: -6px;
@@ -246,29 +283,28 @@
   border-radius: 6px;
 }
 
-/* Parte derecha */
 .hcp-cv-card__right {
   display: flex;
   flex-direction: column;
   gap: 12px;
   flex: 1;
+  min-width: 0;
 }
 
-/* Nombre archivo */
 .hcp-cv-card__filename {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
   color: #1f2a44;
+  overflow-wrap: anywhere;
 }
 
-/* Botón */
 .hcp-cv-card__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  height: 44px;
+  min-height: 44px;
   padding: 0 18px;
   border-radius: 12px;
   border: none;
@@ -289,12 +325,9 @@
   cursor: not-allowed;
 }
 
-/* Error */
 .hcp-cv-card__error {
   color: #b54747;
   font-size: 12px;
-
-  
 }
 
 .hcp-cv-card__empty {
@@ -322,32 +355,101 @@
   color: #7b8896;
 }
 
-.hcp-cv-card__size {
-  font-size: 12px;
-  color: #7b8896;
-}
-
 .hcp-cv-card__header {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* nombre */
-.hcp-cv-card__filename {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #1f2a44;
-}
-
-/* tamaño */
-
-
 .hcp-cv-card__size {
+  width: fit-content;
   font-size: 12px;
   color: #7b8896;
   background: #eef3f7;
   padding: 2px 8px;
   border-radius: 999px;
+}
+
+@media (max-width: 991px) {
+  .hcp-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hcp-title {
+    font-size: 34px;
+  }
+
+  .hcp-profile-back-row {
+    margin-bottom: 22px;
+  }
+}
+
+@media (max-width: 575px) {
+  .hcp-state-wrap {
+    width: min(100% - 28px, 1120px);
+    padding: 28px 0;
+  }
+
+  .hcp-back-btn {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .hcp-cv-card__content,
+  .hcp-cv-card__empty {
+    align-items: flex-start;
+  }
+
+  .hcp-cv-card__icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .hcp-cv-card__icon i {
+    font-size: 24px;
+  }
+}
+
+.hcp-page-shell {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 12px 0 0;
+}
+
+.hcp-page-topbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0 0 18px;
+}
+
+.hcp-profile-layout {
+  align-items: flex-start;
+}
+
+.hcp-profile-hero {
+  margin-bottom: 30px;
+}
+
+@media (max-width: 575px) {
+  .hcp-page-shell {
+    width: min(100% - 28px, 1120px);
+    padding: 24px 0 0;
+  }
+
+  .hcp-page-topbar {
+    margin-bottom: 20px;
+  }
+}
+
+
+.hcp-page.hx-profile-v2 {
+  padding-top: 0;
+}
+
+.hcp-page .hx-profile-layout {
+  padding-top: 0;
 }

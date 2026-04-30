@@ -56,6 +56,19 @@ function getInitials(firstName, lastName, email) {
   return (email?.[0] || "U").toUpperCase();
 }
 
+function formatBytes(bytes) {
+  if (!bytes) return "";
+
+  const kb = bytes / 1024;
+
+  if (kb < 1024) {
+    return `${kb.toFixed(1)} KB`;
+  }
+
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
 export default function AdminCandidateProfile() {
   const { candidateId, jobId } = useParams();
 
@@ -65,92 +78,100 @@ export default function AdminCandidateProfile() {
 
   const [downloadingCv, setDownloadingCv] = useState(false);
   const [cvError, setCvError] = useState("");
-  const fileName = candidate?.cv_file_name || "CV.pdf";
 
   const cvFileName =
-  candidate?.cv_original_name ||
-  candidate?.cv_filename ||
-  candidate?.cv_file_name ||
-  "";
+    candidate?.cv_original_name ||
+    candidate?.cv_filename ||
+    candidate?.cv_file_name ||
+    "";
 
-const hasCv = Boolean(cvFileName);
+  const hasCv = Boolean(cvFileName);
 
+  const backTo = jobId
+    ? `/rrhh/vacantes/${jobId}/postulantes`
+    : "/rrhh/candidatos";
 
-  function getSafeFileNameFromHeaders(contentDisposition, fallbackName = "cv.pdf") {
-  if (!contentDisposition) return fallbackName;
+  const backLabel = jobId ? "Volver" : "Volver a candidatos";
 
-  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
-  if (utf8Match?.[1]) {
-    return decodeURIComponent(utf8Match[1]).replace(/["]/g, "");
+  function getSafeFileNameFromHeaders(
+    contentDisposition,
+    fallbackName = "cv.pdf"
+  ) {
+    if (!contentDisposition) return fallbackName;
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]).replace(/["]/g, "");
+    }
+
+    const normalMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+    if (normalMatch?.[1]) {
+      return normalMatch[1];
+    }
+
+    return fallbackName;
   }
 
-  const normalMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
-  if (normalMatch?.[1]) {
-    return normalMatch[1];
-  }
+  async function handleDownloadCv() {
+    if (!hasCv) {
+      setCvError("Este postulante no tiene CV registrado.");
+      return;
+    }
 
-  return fallbackName;
-}
-
-async function handleDownloadCv() {
-  if (!hasCv) {
-  setCvError("Este postulante no tiene CV registrado.");
-  return;
-}
-  
     try {
-    setCvError("");
-    setDownloadingCv(true);
+      setCvError("");
+      setDownloadingCv(true);
 
-    const token = localStorage.getItem("token") || "";
-    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const token = localStorage.getItem("token") || "";
+      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-    const response = await fetch(
-      `${apiBase}/admin/jobs/${jobId}/candidates/${candidateId}/cv`,
-      {
+      const cvUrl = jobId
+        ? `${apiBase}/admin/jobs/${jobId}/candidates/${candidateId}/cv`
+        : `${apiBase}/admin/candidates/${candidateId}/cv`;
+
+      const response = await fetch(cvUrl, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (!response.ok) {
+        let message = "No se pudo descargar el CV.";
+
+        if (contentType.includes("application/json")) {
+          const data = await response.json();
+          message = data?.message || message;
+        } else {
+          const text = await response.text();
+          if (text) message = text;
+        }
+
+        throw new Error(message);
       }
-    );
 
-    const contentType = response.headers.get("content-type") || "";
+      const blob = await response.blob();
+      const fileName = getSafeFileNameFromHeaders(
+        response.headers.get("content-disposition"),
+        "cv.pdf"
+      );
 
-    if (!response.ok) {
-      let message = "No se pudo descargar el CV.";
-
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        message = data?.message || message;
-      } else {
-        const text = await response.text();
-        if (text) message = text;
-      }
-
-      throw new Error(message);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setCvError(e.message || "No se pudo descargar el CV.");
+    } finally {
+      setDownloadingCv(false);
     }
-
-    const blob = await response.blob();
-    const fileName = getSafeFileNameFromHeaders(
-      response.headers.get("content-disposition"),
-      "cv.pdf"
-    );
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    setCvError(e.message || "No se pudo descargar el CV.");
-  } finally {
-    setDownloadingCv(false);
   }
-}
 
   useEffect(() => {
     let mounted = true;
@@ -160,11 +181,13 @@ async function handleDownloadCv() {
         setLoading(true);
         setError("");
 
-        const data = await apiFetch(`/admin/jobs/${jobId}/candidates/${candidateId}/profile`);
+        const data = await apiFetch(
+          `/admin/jobs/${jobId}/candidates/${candidateId}/profile`
+        );
+
         if (!mounted) return;
 
         setCandidate(data?.candidate || null);
-        console.log("candidate detail:", data?.candidate || data);
       } catch (e) {
         if (!mounted) return;
         setError(e.message || "No se pudo cargar el perfil del candidato.");
@@ -179,7 +202,7 @@ async function handleDownloadCv() {
     return () => {
       mounted = false;
     };
-  }, [candidateId]);
+  }, [candidateId, jobId]);
 
   const form = useMemo(() => {
     return candidate ? mapProfileFromApi(candidate) : null;
@@ -187,12 +210,20 @@ async function handleDownloadCv() {
 
   const fullName = useMemo(() => {
     if (!candidate) return "Perfil de candidato";
-    const name = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim();
+
+    const name = `${candidate.first_name || ""} ${
+      candidate.last_name || ""
+    }`.trim();
+
     return name || "Perfil pendiente";
   }, [candidate]);
 
   const avatarText = useMemo(() => {
-    return getInitials(candidate?.first_name, candidate?.last_name, candidate?.email);
+    return getInitials(
+      candidate?.first_name,
+      candidate?.last_name,
+      candidate?.email
+    );
   }, [candidate]);
 
   const availabilityLabel = useMemo(() => {
@@ -210,16 +241,10 @@ async function handleDownloadCv() {
     return `${typeLabel} · ${number}`;
   }, [form]);
 
-  const genderLabel = useMemo(() => {
-    return getLabel(GENDERS, form?.gender);
-  }, [form]);
-
-  const maritalLabel = useMemo(() => {
-    return getLabel(MARITAL, form?.marital_status);
-  }, [form]);
-
   const visibleAcademicItems = useMemo(() => {
-    return (form?.academic_items || []).filter((item) => !isAcademicItemEmpty(item));
+    return (form?.academic_items || []).filter(
+      (item) => !isAcademicItemEmpty(item)
+    );
   }, [form]);
 
   const visibleWorkItems = useMemo(() => {
@@ -256,7 +281,8 @@ async function handleDownloadCv() {
     const professionalComplete = !!(
       form?.headline?.trim() &&
       form?.about?.trim() &&
-      (form?.experience_years !== "" && form?.experience_years !== null) &&
+      form?.experience_years !== "" &&
+      form?.experience_years !== null &&
       form?.availability
     );
 
@@ -276,17 +302,13 @@ async function handleDownloadCv() {
     return Math.round((done / checklist.length) * 100);
   }, [checklist]);
 
-  const backTo = jobId
-    ? `/rrhh/vacantes/${jobId}/postulantes`
-    : "/rrhh/candidatos";
-
-  const backLabel = jobId ? "Volver" : "Volver a candidatos";
-
   if (loading) {
     return (
-      <div className="hcp-page">
-        <div className="hx-profile-shell-card text-center py-5">
-          Cargando perfil del candidato...
+      <div className="hcp-page hx-profile-v2">
+        <div className="hcp-state-wrap">
+          <div className="hx-profile-shell-card text-center py-5">
+            Cargando perfil del candidato...
+          </div>
         </div>
       </div>
     );
@@ -294,82 +316,59 @@ async function handleDownloadCv() {
 
   if (error) {
     return (
-      <div className="hcp-page">
-        <div className="hcp-topbar">
-          <div>
-            <p className="hcp-eyebrow">Panel interno</p>
-            <h1 className="hcp-title">Perfil del postulante</h1>
-          </div>
-
-          <div className="hcp-actions">
-            <Link to={backTo} className="hja-btn hja-btn--ghost">
+      <div className="hcp-page hx-profile-v2">
+        <div className="hcp-state-wrap">
+          <div className="hcp-profile-back-row">
+            <Link to={backTo} className="hcp-back-btn">
               <i className="bi bi-arrow-left"></i>
               <span>{backLabel}</span>
             </Link>
           </div>
-        </div>
 
-        <div className="alert alert-danger">{error}</div>
+          <div className="alert alert-danger">{error}</div>
+        </div>
       </div>
     );
   }
 
   if (!candidate || !form) {
     return (
-      <div className="hcp-page">
-        <div className="hcp-topbar">
-          <div>
-            <p className="hcp-eyebrow">Panel interno</p>
-            <h1 className="hcp-title">Perfil del postulante</h1>
-          </div>
-
-          <div className="hcp-actions">
-            <Link to={backTo} className="hja-btn hja-btn--ghost">
+      <div className="hcp-page hx-profile-v2">
+        <div className="hcp-state-wrap">
+          <div className="hcp-profile-back-row">
+            <Link to={backTo} className="hcp-back-btn">
               <i className="bi bi-arrow-left"></i>
               <span>{backLabel}</span>
             </Link>
           </div>
-        </div>
 
-        <div className="hx-profile-shell-card text-center py-5">
-          No se encontró información del candidato.
+          <div className="hx-profile-shell-card text-center py-5">
+            No se encontró información del candidato.
+          </div>
         </div>
       </div>
     );
   }
 
-  function formatBytes(bytes) {
-  if (!bytes) return "";
-
-  const kb = bytes / 1024;
-
-  if (kb < 1024) {
-    return `${kb.toFixed(1)} KB`;
-  }
-
-  const mb = kb / 1024;
-  return `${mb.toFixed(1)} MB`;
-}
-
   return (
-    <div className="hcp-page hx-profile-v2">
-      <div className="hcp-topbar">
-
-        <div className="hcp-actions">
-          <Link to={backTo} className="hja-btn hja-btn--ghost">
-            <i className="bi bi-arrow-left"></i>
-            <span>{backLabel}</span>
-          </Link>
-        </div>
+  <div className="hcp-page hx-profile-v2">
+    <div className="hcp-page-shell">
+      <div className="hcp-page-topbar">
+        <Link to={backTo} className="hcp-back-btn">
+          <i className="bi bi-arrow-left"></i>
+          <span>{backLabel}</span>
+        </Link>
       </div>
 
-      <div className="hx-profile-layout">
+      <div className="hx-profile-layout hcp-profile-layout">
         <div className="hx-profile-main">
-          <section className="hx-profile-topbar">
+          <section className="hx-profile-topbar hcp-profile-hero">
             <div className="hx-profile-hero-copy">
               <h1 className="hx-profile-v2-name">{fullName}</h1>
               <p className="hx-headline">
-                {form.headline?.trim() ? form.headline : "Titular profesional no especificado"}
+                {form.headline?.trim()
+                  ? form.headline
+                  : "Titular profesional no especificado"}
               </p>
             </div>
           </section>
@@ -437,7 +436,11 @@ async function handleDownloadCv() {
                   </div>
                   <div>
                     <strong>FECHA DE NACIMIENTO</strong>
-                    <span>{form.birth_date ? formatDate(form.birth_date) : "No especificada"}</span>
+                    <span>
+                      {form.birth_date
+                        ? formatDate(form.birth_date)
+                        : "No especificada"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -446,7 +449,9 @@ async function handleDownloadCv() {
 
           <section className="hx-section-shell">
             <div className="hx-section-top-row">
-              <h2 className="hx-section-main-title">Información Profesional</h2>
+              <h2 className="hx-section-main-title">
+                Información Profesional
+              </h2>
             </div>
 
             {!hasProfessionalInfo ? (
@@ -469,7 +474,8 @@ async function handleDownloadCv() {
                       </h3>
 
                       <p className="hx-section-record-subtitle">
-                        {form.experience_years !== "" && form.experience_years !== null
+                        {form.experience_years !== "" &&
+                        form.experience_years !== null
                           ? formatYears(form.experience_years)
                           : "Experiencia no especificada"}
                       </p>
@@ -531,12 +537,16 @@ async function handleDownloadCv() {
 
                             <span>
                               <i className="bi bi-patch-check-fill"></i>
-                              {getLabel(ACADEMIC_STATUS, item.academic_status)}
+                              {getLabel(
+                                ACADEMIC_STATUS,
+                                item.academic_status
+                              )}
                             </span>
 
                             <span>
                               <i className="bi bi-calendar3"></i>
-                              {formatYear(item.start_date)} - {formatYear(item.end_date)}
+                              {formatYear(item.start_date)} -{" "}
+                              {formatYear(item.end_date)}
                             </span>
 
                             <span>
@@ -591,7 +601,8 @@ async function handleDownloadCv() {
 
                             <span>
                               <i className="bi bi-calendar3"></i>
-                              {formatMonthYear(item.start_date)} - {formatMonthYear(item.end_date)}
+                              {formatMonthYear(item.start_date)} -{" "}
+                              {formatMonthYear(item.end_date)}
                             </span>
                           </div>
                         </div>
@@ -618,8 +629,12 @@ async function handleDownloadCv() {
             </p>
 
             <div className="hx-profile-side-progress-row">
-              <span className="hx-profile-side-progress-label">Perfil visible</span>
-              <strong className="hx-profile-side-progress-value">{totalProfileProgress}%</strong>
+              <span className="hx-profile-side-progress-label">
+                Perfil visible
+              </span>
+              <strong className="hx-profile-side-progress-value">
+                {totalProfileProgress}%
+              </strong>
             </div>
 
             <div className="hx-progress-track hx-progress-track--small">
@@ -647,58 +662,67 @@ async function handleDownloadCv() {
             </div>
           </section>
 
-         <section className="hx-profile-shell-card hcp-side-card hcp-cv-card">
+          <section className="hx-profile-shell-card hcp-side-card hcp-cv-card">
             {hasCv ? (
-                <div className="hcp-cv-card__content">
+              <div className="hcp-cv-card__content">
                 <div className="hcp-cv-card__left">
-                    <div className="hcp-cv-card__icon">
+                  <div className="hcp-cv-card__icon">
                     <i className="bi bi-file-earmark-text"></i>
                     <span className="hcp-cv-card__badge">PDF</span>
-                    </div>
+                  </div>
                 </div>
 
                 <div className="hcp-cv-card__right">
-                    <h4 className="hcp-cv-card__filename">{cvFileName}</h4>
-                    
-                    <button
+                  <h4 className="hcp-cv-card__filename">{cvFileName}</h4>
+
+                  <button
                     type="button"
                     className="hcp-cv-card__btn"
                     onClick={handleDownloadCv}
                     disabled={downloadingCv}
-                    >
-                    <i className={`bi ${downloadingCv ? "bi-hourglass-split" : "bi-download"}`}></i>
-                    <span>{downloadingCv ? "Descargando..." : "Descargar CV"}</span>
-                    </button>
+                  >
+                    <i
+                      className={`bi ${
+                        downloadingCv ? "bi-hourglass-split" : "bi-download"
+                      }`}
+                    ></i>
+                    <span>
+                      {downloadingCv ? "Descargando..." : "Descargar CV"}
+                    </span>
+                  </button>
 
-                    {candidate.cv_size_bytes && (
-                      <small className="hcp-cv-card__size">
-                        Size: {formatBytes(candidate.cv_size_bytes)}
-                      </small>
-                    )}
+                  {candidate.cv_size_bytes && (
+                    <small className="hcp-cv-card__size">
+                      Size: {formatBytes(candidate.cv_size_bytes)}
+                    </small>
+                  )}
 
-                    {cvError && <small className="hcp-cv-card__error">{cvError}</small>}
+                  {cvError && (
+                    <small className="hcp-cv-card__error">{cvError}</small>
+                  )}
                 </div>
-                </div>
+              </div>
             ) : (
-                <div className="hcp-cv-card__empty">
+              <div className="hcp-cv-card__empty">
                 <div className="hcp-cv-card__icon hcp-cv-card__icon--empty">
-                    <i className="bi bi-file-earmark-x"></i>
+                  <i className="bi bi-file-earmark-x"></i>
                 </div>
 
                 <div className="hcp-cv-card__right">
-                    <h4 className="hcp-cv-card__filename hcp-cv-card__filename--empty">
+                  <h4 className="hcp-cv-card__filename hcp-cv-card__filename--empty">
                     Sin CV registrado
-                    </h4>
+                  </h4>
 
-                    <p className="hcp-cv-card__empty-text">
+                  <p className="hcp-cv-card__empty-text">
                     Este postulante aún no ha subido su currículum.
-                    </p>
+                  </p>
                 </div>
-                </div>
+              </div>
             )}
           </section>
         </aside>
       </div>
     </div>
-  );
+  </div>
+);
 }
