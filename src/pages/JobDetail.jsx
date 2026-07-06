@@ -115,9 +115,9 @@ export default function JobDetail() {
   return (
     <section className="jobdetail-page py-4 py-lg-5">
       <div className="jobdetail-shell">
-        <Link to="/mis-postulaciones" className="jobdetail-back">
+       <Link to="/empleos" className="jobdetail-back">
           <i className="bi bi-arrow-left"></i>
-          Volver a mis postulaciones
+          Volver a empleos
         </Link>
 
         <article className="jobdetail-card">
@@ -136,13 +136,27 @@ export default function JobDetail() {
               </div>
             </div>
 
-            {application && (
-              <div className="jobdetail-hero-right">
-                <span className="jobdetail-application-pill">
-                  {mapApplicationStatus(application.status)}
-                </span>
-              </div>
-            )}
+            <div className="jobdetail-hero-right">
+  {application && (
+    <span className="jobdetail-application-pill">
+      {mapApplicationStatus(application.status)}
+    </span>
+  )}
+
+  <button type="button" className="jobdetail-action-btn">
+    <i className="bi bi-heart"></i>
+    Guardar
+  </button>
+
+  <button
+    type="button"
+    className="jobdetail-action-btn"
+    onClick={() => navigator.clipboard.writeText(window.location.href)}
+  >
+    <i className="bi bi-link-45deg"></i>
+    Copiar enlace
+  </button>
+</div>
           </div>
 
           <div className="jobdetail-divider"></div>

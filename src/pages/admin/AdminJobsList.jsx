@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { apiFetch } from "../../services/api";
 import AdminJobForm from "./AdminJobForm";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
@@ -7,19 +6,10 @@ import "./admin-jobs-list.css";
 import { sanitizeRichTextHtml } from "../../utils/richText";
 import JobDescriptionModal from "../../components/admin/JobDescriptionModal";
 import { useAuth } from "../../hooks/useAuth";
-
-const STATUS_META = {
-  PUBLISHED: { label: "Publicado", cls: "is-published" },
-  CLOSED: { label: "Cerrado", cls: "is-closed" },
-  DRAFT: { label: "Borrador", cls: "is-draft" },
-};
-
-const FILTERS = [
-  { key: "ALL", label: "Todas" },
-  { key: "PUBLISHED", label: "Publicadas" },
-  { key: "CLOSED", label: "Cerradas" },
-  { key: "DRAFT", label: "Borradores" },
-];
+import PageHeader from "../../components/PageHeader";
+import StatCard from "../../components/ui/StatCard";
+import AdminToolbar from "../../components/ui/AdminToolbar";
+import AdminJobCard from "../../components/admin/AdminJobCard";
 
 const DESCRIPTION_PREVIEW_WORDS = 50;
 
@@ -36,52 +26,6 @@ function formatEmploymentType(value) {
   };
 
   return map[value] || value;
-}
-
-function formatCreator(job) {
-  const roleLabel =
-    job?.creator_role === "ADMIN"
-      ? "Admin"
-      : job?.creator_role === "RRHH"
-      ? "RRHH"
-      : "Usuario";
-
-  const firstName = (job?.creator_first_name || "").trim();
-  const lastName = (job?.creator_last_name || "").trim();
-
-  const fullName =
-    firstName && lastName
-      ? `${firstName} ${lastName}`
-      : firstName || lastName || "";
-
-  const visibleName = fullName || job?.creator_email || "No disponible";
-
-  return `${roleLabel} · ${visibleName}`;
-}
-
-function formatDateTime(value) {
-  if (!value) return "—";
-
-  try {
-    return new Date(value).toLocaleString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
-
-function hasRealEdit(job) {
-  if (!job?.created_at || !job?.updated_at) return false;
-
-  const created = new Date(job.created_at).getTime();
-  const updated = new Date(job.updated_at).getTime();
-
-  return updated > created + 1000;
 }
 
 function extractPreviewData(value) {
@@ -113,6 +57,7 @@ function extractPreviewData(value) {
     .trim();
 
   const words = fullText.split(" ").filter(Boolean);
+
   const previewText =
     words.length > DESCRIPTION_PREVIEW_WORDS
       ? `${words.slice(0, DESCRIPTION_PREVIEW_WORDS).join(" ")}...`
@@ -132,14 +77,12 @@ function canDeleteJob(job) {
   return applicantsCount === 0 && !isPublished;
 }
 
-function getJobDescriptionHtml(value) {
-  const html = sanitizeRichTextHtml(value);
-
-  if (!html) {
-    return "<p>Esta vacante aún no tiene una descripción registrada.</p>";
-  }
-
-  return html;
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 export default function AdminJobsList() {
@@ -148,13 +91,13 @@ export default function AdminJobsList() {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [showJobModal, setShowJobModal] = useState(false);
   const [editingJobId, setEditingJobId] = useState(null);
 
   const [jobToDelete, setJobToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [expandedDescriptionId, setExpandedDescriptionId] = useState(null);
 
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [selectedJobForDescription, setSelectedJobForDescription] =
@@ -181,6 +124,7 @@ export default function AdminJobsList() {
 
       const data = await apiFetch("/admin/jobs");
       const list = data?.jobs ?? data ?? [];
+
       setRows(Array.isArray(list) ? list : []);
     } catch (e) {
       setError(e.message || "No se pudieron cargar las vacantes");
@@ -274,77 +218,102 @@ export default function AdminJobsList() {
     };
   }, [rows]);
 
+  const toolbarFilters = useMemo(() => {
+    return [
+      { key: "ALL", label: "Todas", count: summary.total },
+      { key: "PUBLISHED", label: "Publicadas", count: summary.published },
+      { key: "CLOSED", label: "Cerradas", count: summary.closed },
+      { key: "DRAFT", label: "Borradores", count: summary.draft },
+    ];
+  }, [summary]);
+
   const filteredRows = useMemo(() => {
-    if (activeFilter === "ALL") return rows;
-    return rows.filter((r) => r.status === activeFilter);
-  }, [rows, activeFilter]);
+    const normalizedSearch = normalizeText(searchTerm);
+
+    return rows.filter((job) => {
+      const matchesStatus =
+        activeFilter === "ALL" || job.status === activeFilter;
+
+      if (!matchesStatus) return false;
+      if (!normalizedSearch) return true;
+
+      const searchableText = normalizeText(
+        [
+          job.title,
+          job.location,
+          job.employment_type,
+          formatEmploymentType(job.employment_type),
+          job.salary_range,
+          job.creator_email,
+          job.creator_first_name,
+          job.creator_last_name,
+          job.status,
+        ].join(" ")
+      );
+
+      return searchableText.includes(normalizedSearch);
+    });
+  }, [rows, activeFilter, searchTerm]);
 
   return (
     <>
       <section className="hx-admin-jobs-v2">
-        <div className="hx-admin-jobs-v2__header">
-          <div>
-            <h1 className="hx-admin-jobs-v2__title">Vacantes</h1>
-            <p className="hx-admin-jobs-v2__subtitle">
-              Administra tus vacantes publicadas, cerradas y borradores desde un
-              solo lugar.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="hx-admin-jobs-v2__new-btn border-0"
-            onClick={openCreateModal}
-          >
-            <i className="bi bi-plus-lg"></i>
-            <span>Nueva vacante</span>
-          </button>
-        </div>
+        <PageHeader
+          eyebrow="Gestión RRHH"
+          title="Vacantes"
+          subtitle="Administra tus vacantes publicadas, cerradas y borradores desde un solo lugar."
+          action={
+            <button
+              type="button"
+              className="hx-admin-jobs-v2__new-btn border-0"
+              onClick={openCreateModal}
+            >
+              <i className="bi bi-plus-lg"></i>
+              <span>Nueva vacante</span>
+            </button>
+          }
+        />
 
         <div className="hx-admin-jobs-v2__stats">
-          <article className="hx-admin-jobs-v2__stat-card">
-            <span className="hx-admin-jobs-v2__stat-label">Total</span>
-            <strong className="hx-admin-jobs-v2__stat-value">
-              {summary.total}
-            </strong>
-          </article>
+          <StatCard
+            icon="bi-briefcase"
+            title="Total"
+            value={summary.total}
+            subtitle="Vacantes registradas"
+          />
 
-          <article className="hx-admin-jobs-v2__stat-card">
-            <span className="hx-admin-jobs-v2__stat-label">Publicadas</span>
-            <strong className="hx-admin-jobs-v2__stat-value is-accent">
-              {summary.published}
-            </strong>
-          </article>
+          <StatCard
+            icon="bi-megaphone"
+            title="Publicadas"
+            value={summary.published}
+            subtitle="Disponibles para candidatos"
+            color="success"
+          />
 
-          <article className="hx-admin-jobs-v2__stat-card">
-            <span className="hx-admin-jobs-v2__stat-label">Cerradas</span>
-            <strong className="hx-admin-jobs-v2__stat-value">
-              {summary.closed}
-            </strong>
-          </article>
+          <StatCard
+            icon="bi-lock"
+            title="Cerradas"
+            value={summary.closed}
+            subtitle="Procesos finalizados"
+            color="muted"
+          />
 
-          <article className="hx-admin-jobs-v2__stat-card">
-            <span className="hx-admin-jobs-v2__stat-label">Borradores</span>
-            <strong className="hx-admin-jobs-v2__stat-value is-muted">
-              {summary.draft}
-            </strong>
-          </article>
+          <StatCard
+            icon="bi-pencil-square"
+            title="Borradores"
+            value={summary.draft}
+            subtitle="Pendientes de publicar"
+            color="warning"
+          />
         </div>
 
-        <div className="hx-admin-jobs-v2__filters">
-          {FILTERS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`hx-admin-jobs-v2__filter ${
-                activeFilter === item.key ? "is-active" : ""
-              }`}
-              onClick={() => setActiveFilter(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <AdminToolbar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={toolbarFilters}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
 
         {loading && (
           <div className="hx-admin-jobs-v2__feedback">Cargando vacantes...</div>
@@ -366,8 +335,12 @@ export default function AdminJobsList() {
           <div className="hx-admin-jobs-v2__cards-wrap">
             {filteredRows.length === 0 ? (
               <div className="hx-admin-jobs-v2__empty">
-                <h3>No hay vacantes en esta categoría</h3>
-                <p>Puedes crear una nueva vacante o cambiar el filtro.</p>
+                <h3>No hay vacantes disponibles</h3>
+                <p>
+                  Puedes crear una nueva vacante, cambiar el filtro o limpiar la
+                  búsqueda.
+                </p>
+
                 <button
                   type="button"
                   className="hx-admin-jobs-v2__empty-btn border-0"
@@ -378,142 +351,18 @@ export default function AdminJobsList() {
               </div>
             ) : (
               filteredRows.map((job) => {
-                const status = STATUS_META[job.status] || STATUS_META.DRAFT;
                 const preview = extractPreviewData(job.description);
 
                 return (
-                  <article key={job.id} className="hx-admin-jobs-v2__job-card">
-                    <div className="hx-admin-jobs-v2__job-main">
-                      <div className="hx-admin-jobs-v2__job-header-row">
-                        <div className="hx-admin-jobs-v2__job-copy">
-                          <div className="hx-admin-jobs-v2__title-row">
-                            <h3 className="hx-admin-jobs-v2__job-title">
-                              {job.title || "Sin título"}
-                            </h3>
-
-                            <span
-                              className={`hx-admin-jobs-v2__status-badge ${status.cls}`}
-                            >
-                              {status.label}
-                            </span>
-
-                            <button
-                              type="button"
-                              className="hx-admin-jobs-v2__view-description-btn"
-                              onClick={() => openDescriptionModal(job)}
-                            >
-                              <span>Ver descripción</span>
-                              <i className="bi bi-chevron-right"></i>
-                            </button>
-                          </div>
-
-                          {expandedDescriptionId === job.id && (
-                            <div
-                              className="hx-admin-jobs-v2__job-description-panel"
-                              dangerouslySetInnerHTML={{
-                                __html: getJobDescriptionHtml(job.description),
-                              }}
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="hx-admin-jobs-v2__card-main">
-                        <div className="hx-admin-jobs-v2__card-left">
-                          <div className="hx-admin-jobs-v2__meta-stack">
-                            <span className="hx-admin-jobs-v2__meta-item">
-                              <i className="bi bi-geo-alt-fill"></i>
-                              <span>{job.location || "No especificado"}</span>
-                            </span>
-
-                            <span className="hx-admin-jobs-v2__meta-item">
-                              <i className="bi bi-briefcase-fill"></i>
-                              <span>
-                                {formatEmploymentType(job.employment_type)}
-                              </span>
-                            </span>
-
-                            <span className="hx-admin-jobs-v2__meta-item">
-                              <i className="bi bi-cash-stack"></i>
-                              <span>{job.salary_range || "No especificado"}</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="hx-admin-jobs-v2__card-center">
-                          {isAdmin && (
-                            <span className="hx-admin-jobs-v2__meta-item">
-                              <i className="bi bi-person-badge-fill"></i>
-                              <span>{formatCreator(job)}</span>
-                            </span>
-                          )}
-
-                          <span className="hx-admin-jobs-v2__meta-item">
-                            <i className="bi bi-calendar-plus-fill"></i>
-                            <span>Creada: {formatDateTime(job.created_at)}</span>
-                          </span>
-
-                          {hasRealEdit(job) && (
-                            <span className="hx-admin-jobs-v2__meta-item">
-                              <i className="bi bi-pencil-square"></i>
-                              <span>
-                                Editada: {formatDateTime(job.updated_at)}
-                              </span>
-                            </span>
-                          )}
-
-                          {job.published_at && (
-                            <span className="hx-admin-jobs-v2__meta-item">
-                              <i className="bi bi-megaphone-fill"></i>
-                              <span>
-                                Publicada: {formatDateTime(job.published_at)}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="hx-admin-jobs-v2__job-aside">
-                      <div className="hx-admin-jobs-v2__actions">
-                        <Link
-                          to={`/rrhh/vacantes/${job.id}/postulantes`}
-                          className="hx-admin-jobs-v2__action-btn is-postulantes"
-                          title="Ver postulantes"
-                        >
-                          <i className="bi bi-people"></i>
-                          <span>Postulantes ({job.applicants_count ?? 0})</span>
-                        </Link>
-
-                        <button
-                          type="button"
-                          className="hx-admin-jobs-v2__icon-btn"
-                          title="Editar vacante"
-                          onClick={() => openEditModal(job.id)}
-                        >
-                          <i className="bi bi-pencil-fill"></i>
-                        </button>
-
-                        <button
-                          type="button"
-                          className={`hx-admin-jobs-v2__icon-btn is-danger ${
-                            !canDeleteJob(job) ? "is-disabled" : ""
-                          }`}
-                          onClick={() => requestDelete(job)}
-                          title={
-                            Number(job?.applicants_count ?? 0) > 0
-                              ? "No se puede eliminar porque tiene postulantes"
-                              : job?.status === "PUBLISHED"
-                              ? "No se puede eliminar una vacante publicada"
-                              : "Eliminar vacante"
-                          }
-                          disabled={!canDeleteJob(job)}
-                        >
-                          <i className="bi bi-trash-fill"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </article>
+                  <AdminJobCard
+                    key={job.id}
+                    job={job}
+                    preview={preview}
+                    isAdmin={isAdmin}
+                    onViewDescription={openDescriptionModal}
+                    onEdit={openEditModal}
+                    onDelete={requestDelete}
+                  />
                 );
               })
             )}

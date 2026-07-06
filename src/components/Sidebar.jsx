@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed, onToggle }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const nav = useNavigate();
@@ -47,49 +47,71 @@ export default function Sidebar() {
   const userInitial = (user?.email?.[0] || "U").toUpperCase();
 
   return (
-    <aside className="hx-sidebar">
+    <aside className={`hx-sidebar ${collapsed ? "hx-sidebar--collapsed" : ""}`}>
       <div>
         <div className="hx-sidebar__logo-block">
-        <div className="hx-sidebar__logo">
-        <img src="/logo-oficial.png" alt="Humantyx Jobs"  style={{ height: 100, width: "auto" }}/>
+          <div className="hx-sidebar__top">
+            <div className="hx-sidebar__brand">
+                {!collapsed ? (
+                  <img
+                    src="/logo-oficial.png"
+                    alt="Humantyx Jobs"
+                    className="hx-sidebar__brand-logo"
+                  />
+                ) : (
+                  <div className="hx-sidebar__brand-mini">HX</div>
+                )}
+              </div>
+
+            <button
+              type="button"
+              className="hx-sidebar__collapse-btn"
+              onClick={onToggle}
+              title={collapsed ? "Expandir menú" : "Contraer menú"}
+              aria-label={collapsed ? "Expandir menú" : "Contraer menú"}
+            >
+              <i className={`bi ${collapsed ? "bi-layout-sidebar" : "bi-layout-sidebar-inset"}`}></i>
+            </button>
+          </div>
+
+          {!collapsed && (
+            <div className="hx-sidebar__section-title">
+              PANEL
+            </div>
+          )}
+
+          <div className="hx-sidebar__divider"></div>
         </div>
 
-        <div className="hx-sidebar__section-title">
-         PANEL
-        </div>
-
-        <div className="hx-sidebar__divider"></div>
-    </div>
-
- 
         <nav className="hx-sidebar__menu">
           <Link
             to="/rrhh/vacantes"
             className={`hx-sidebar__item ${isActive("/rrhh/vacantes") ? "active" : ""}`}
+            title="Gestión de Vacantes"
           >
             <i className="bi bi-briefcase"></i>
-            <span>Gestión de Vacantes</span>
+            {!collapsed && <span>Gestión de Vacantes</span>}
           </Link>
 
           {isAdmin && (
             <Link
               to="/rrhh/candidatos"
               className={`hx-sidebar__item ${isActive("/rrhh/candidatos") ? "active" : ""}`}
+              title="Candidatos"
             >
               <i className="bi bi-people"></i>
-              <span>Candidatos</span>
+              {!collapsed && <span>Candidatos</span>}
             </Link>
           )}
-
-          
 
           {isAdmin && (
             <Link
               to="/rrhh/invitar"
               className={`hx-sidebar__item ${isActive("/rrhh/invitar") ? "active" : ""}`}
+              title="Invitar usuario"
             >
               <i className="bi bi-person-plus"></i>
-              <span>Invitar usuario</span>
+              {!collapsed && <span>Invitar usuario</span>}
             </Link>
           )}
 
@@ -97,9 +119,10 @@ export default function Sidebar() {
             <Link
               to="/rrhh/invitaciones"
               className={`hx-sidebar__item ${isActive("/rrhh/invitaciones") ? "active" : ""}`}
+              title="Invitaciones"
             >
               <i className="bi bi-envelope-paper"></i>
-              <span>Invitaciones</span>
+              {!collapsed && <span>Invitaciones</span>}
             </Link>
           )}
 
@@ -107,9 +130,10 @@ export default function Sidebar() {
             <Link
               to="/rrhh/usuarios"
               className={`hx-sidebar__item ${isActive("/rrhh/usuarios") ? "active" : ""}`}
+              title="Usuarios RRHH"
             >
               <i className="bi bi-person-gear"></i>
-              <span>Usuarios RRHH</span>
+              {!collapsed && <span>Usuarios RRHH</span>}
             </Link>
           )}
         </nav>
@@ -120,18 +144,22 @@ export default function Sidebar() {
           type="button"
           className="hx-sidebar__account"
           onClick={() => setAccountOpen((v) => !v)}
+          title={user?.email || "Usuario"}
         >
           <div className="hx-sidebar__avatar">{userInitial}</div>
 
-          <div className="hx-sidebar__account-text">
-            <strong>{user?.email || "Usuario"}</strong>
-           
-          </div>
+          {!collapsed && (
+            <div className="hx-sidebar__account-text">
+              <strong>{user?.email || "Usuario"}</strong>
+            </div>
+          )}
 
-          <i className={`bi ${accountOpen ? "bi-chevron-up" : "bi-chevron-down"}`}></i>
+          {!collapsed && (
+            <i className={`bi ${accountOpen ? "bi-chevron-up" : "bi-chevron-down"}`}></i>
+          )}
         </button>
 
-        {accountOpen && (
+        {accountOpen && !collapsed && (
           <div className="hx-sidebar__account-menu">
             <Link
               to="/empleos"

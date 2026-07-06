@@ -186,3 +186,11 @@ export async function markNotificationsAsReadByContext(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+/* =========================
+   DASHBOARD RRHH
+========================= */
+
+export async function getDashboardSummary() {
+  return apiFetch("/admin/dashboard/summary");
+}

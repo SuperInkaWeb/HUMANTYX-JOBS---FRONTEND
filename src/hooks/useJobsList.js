@@ -8,6 +8,7 @@ export default function useJobsList({
   queryKeyword,
   queryLocation,
   querySort,
+  selectedJobIdFromUrl,
   onResetMessages,
 }) {
   const [jobs, setJobs] = useState([]);
@@ -16,14 +17,15 @@ export default function useJobsList({
   const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
-    loadJobs(queryKeyword, queryLocation, querySort);
+    loadJobs(queryKeyword, queryLocation, querySort, selectedJobIdFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryKeyword, queryLocation, querySort]);
+  }, [queryKeyword, queryLocation, querySort, selectedJobIdFromUrl]);
 
   async function loadJobs(
     qValue = "",
     locationValue = "",
-    sortValue = "newest"
+    sortValue = "newest",
+    routeJobId = null
   ) {
     try {
       setLoadingList(true);
@@ -31,12 +33,13 @@ export default function useJobsList({
       onResetMessages?.();
 
       const params = new URLSearchParams();
+
       if (qValue.trim()) params.set("q", qValue.trim());
       if (locationValue.trim()) params.set("location", locationValue.trim());
 
-      const data = await apiFetch(
-        `/jobs${params.toString() ? `?${params.toString()}` : ""}`
-      );
+      params.set("limit", "100");
+
+      const data = await apiFetch(`/jobs?${params.toString()}`);
 
       const rawList = data.jobs || [];
       const sortedList = sortJobs(rawList, sortValue);
@@ -44,10 +47,11 @@ export default function useJobsList({
       setJobs(sortedList);
 
       if (sortedList.length > 0) {
-        setSelectedId((prev) => {
-          const stillExists = sortedList.some((job) => job.id === prev);
-          return stillExists ? prev : sortedList[0].id;
-        });
+        const jobFromUrl = routeJobId
+          ? sortedList.find((job) => String(job.id) === String(routeJobId))
+          : null;
+
+        setSelectedId(jobFromUrl ? jobFromUrl.id : sortedList[0].id);
       } else {
         setSelectedId(null);
       }
