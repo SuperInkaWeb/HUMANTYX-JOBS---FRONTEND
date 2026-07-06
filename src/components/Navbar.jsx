@@ -412,15 +412,15 @@ export default function Navbar() {
                         )}
 
                         {(isRRHH || isAdmin) && (
-                          <Link
-                            to="/rrhh/vacantes"
-                            className="hx-user-menu__item"
-                            onClick={() => setMenuOpen(false)}
-                          >
-                            <i className="bi bi-speedometer2"></i>
-                            <span>Panel de control</span>
-                          </Link>
-                        )}
+                            <Link
+                              to="/rrhh/dashboard"
+                              className="hx-user-menu__item"
+                              onClick={() => setMenuOpen(false)}
+                            >
+                              <i className="bi bi-speedometer2"></i>
+                              <span>Panel de control</span>
+                            </Link>
+                          )}
 
                         <Link
                           to="/cambiar-password"

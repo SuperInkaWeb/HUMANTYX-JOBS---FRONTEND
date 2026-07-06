@@ -27,6 +27,33 @@ export default function useJobsSearchParams() {
     setSortBy(querySort);
   }, [queryKeyword, queryLocation, querySort]);
 
+  function buildSearchParams(nextKeyword, nextLocation, nextSort) {
+    const params = new URLSearchParams();
+
+    if (nextKeyword.trim()) params.set("q", nextKeyword.trim());
+    if (nextLocation.trim()) params.set("location", nextLocation.trim());
+    if (nextSort && nextSort !== "newest") params.set("sort", nextSort);
+
+    return params;
+  }
+
+  function buildUrl(params) {
+    return `${locationHook.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = buildSearchParams(keyword, location, sortBy);
+      const nextUrl = buildUrl(params);
+
+      if (`${locationHook.pathname}${locationHook.search}` !== nextUrl) {
+        navigate(nextUrl, { replace: true });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [keyword, location, sortBy, locationHook.pathname, locationHook.search]);
+
   useEffect(() => {
     function handleClickOutside() {
       setOpenSort(false);
@@ -41,20 +68,11 @@ export default function useJobsSearchParams() {
     };
   }, [openSort]);
 
-  function buildSearchParams(nextKeyword, nextLocation, nextSort) {
-    const params = new URLSearchParams();
-
-    if (nextKeyword.trim()) params.set("q", nextKeyword.trim());
-    if (nextLocation.trim()) params.set("location", nextLocation.trim());
-    if (nextSort && nextSort !== "newest") params.set("sort", nextSort);
-
-    return params;
-  }
-
   function onSearch(e) {
     e.preventDefault();
+
     const params = buildSearchParams(keyword, location, sortBy);
-    navigate(`/empleos${params.toString() ? `?${params.toString()}` : ""}`);
+    navigate(buildUrl(params));
   }
 
   function toggleSortDropdown(e) {
@@ -67,7 +85,7 @@ export default function useJobsSearchParams() {
     setOpenSort(false);
 
     const params = buildSearchParams(keyword, location, value);
-    navigate(`/empleos${params.toString() ? `?${params.toString()}` : ""}`);
+    navigate(buildUrl(params));
   }
 
   return {
