@@ -21,7 +21,11 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import MyApplications from "./pages/MyApplications";
 import MyProfile from "./pages/MyProfile";
 
+import CompleteProfile from "./pages/CompleteProfile";
+import ChangePassword from "./pages/ChangePassword";
+
 // RRHH
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminJobsList from "./pages/admin/AdminJobsList";
 import AdminJobForm from "./pages/admin/AdminJobForm";
 import AdminJobApplications from "./pages/admin/AdminJobApplications";
@@ -29,10 +33,7 @@ import AdminCandidatesList from "./pages/admin/AdminCandidatesList";
 import AdminInviteUser from "./pages/admin/AdminInviteUser";
 import AdminCandidateProfile from "./pages/admin/AdminCandidateProfile";
 import AdminUsersList from "./pages/admin/AdminUsersList";
-
-import CompleteProfile from "./pages/CompleteProfile";
 import AdminInvitesList from "./pages/admin/AdminInvitesList";
-import ChangePassword from "./pages/ChangePassword";
 
 export default function App() {
   return (
@@ -50,7 +51,7 @@ export default function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/empleos" element={<JobsList />} />
-            <Route path="/empleos/:id" element={<JobDetail />} />
+            <Route path="/empleos/:id" element={<JobsList />} />
 
             <Route
               path="/completar-perfil"
@@ -100,6 +101,8 @@ export default function App() {
               </RoleProtectedRoute>
             }
           >
+            <Route path="/rrhh/dashboard" element={<AdminDashboard />} />
+
             <Route path="/rrhh/vacantes" element={<AdminJobsList />} />
             <Route path="/rrhh/vacantes/nueva" element={<AdminJobForm />} />
             <Route path="/rrhh/vacantes/:id/editar" element={<AdminJobForm />} />
