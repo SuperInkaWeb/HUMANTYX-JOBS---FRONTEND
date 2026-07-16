@@ -25,7 +25,7 @@ const EMPTY_FORM = {
   employment_type: "",
   salary_range: "",
   description: "",
-  status: "",
+  status: "DRAFT",
 };
 
 function stripHtml(html) {
@@ -89,6 +89,7 @@ export default function AdminJobForm({
   const editing = Boolean(effectiveId);
 
   const [form, setForm] = useState(EMPTY_FORM);
+  const [submitIntent, setSubmitIntent] = useState("DRAFT");
   const initialSnapshotRef = useRef(normalizeForm(EMPTY_FORM));
 
   const [loading, setLoading] = useState(editing);
@@ -99,12 +100,13 @@ export default function AdminJobForm({
 
   const [confirmState, setConfirmState] = useState({
     open: false,
-    mode: null, // "save" | "cancel"
+    mode: null,
   });
 
   useEffect(() => {
     if (!editing) {
       setForm(EMPTY_FORM);
+      setSubmitIntent("DRAFT");
       initialSnapshotRef.current = normalizeForm(EMPTY_FORM);
       setFieldErrors({});
       setLoading(false);
@@ -126,7 +128,7 @@ export default function AdminJobForm({
           employment_type: normalizeEmploymentType(job?.employment_type),
           salary_range: job?.salary_range ?? "",
           description: job?.description ?? "",
-          status: job?.status ?? "",
+          status: job?.status ?? "DRAFT",
         };
 
         setForm(next);
@@ -198,16 +200,22 @@ export default function AdminJobForm({
 
     if (!cleaned.title) nextErrors.title = "El título es obligatorio.";
     if (!cleaned.location) nextErrors.location = "La ubicación es obligatoria.";
+
     if (!cleaned.employment_type) {
       nextErrors.employment_type = "Selecciona el tipo de empleo.";
     }
+
     if (!cleaned.salary_range) {
       nextErrors.salary_range = "El rango salarial es obligatorio.";
     }
+
     if (!stripHtml(cleaned.description)) {
       nextErrors.description = "La descripción es obligatoria.";
     }
-    if (!cleaned.status) nextErrors.status = "Selecciona el estado.";
+
+    if (editing && !cleaned.status) {
+      nextErrors.status = "Selecciona el estado.";
+    }
 
     setFieldErrors(nextErrors);
 
@@ -252,6 +260,32 @@ export default function AdminJobForm({
   function handleSubmit(e) {
     e.preventDefault();
 
+    if (!editing) {
+      setSubmitIntent("PUBLISHED");
+    }
+
+    if (!validateForm()) return;
+
+    setConfirmState({
+      open: true,
+      mode: "save",
+    });
+  }
+
+  function handleSaveDraft() {
+    setSubmitIntent("DRAFT");
+
+    if (!validateForm()) return;
+
+    setConfirmState({
+      open: true,
+      mode: "save",
+    });
+  }
+
+  function handlePublishJob() {
+    setSubmitIntent("PUBLISHED");
+
     if (!validateForm()) return;
 
     setConfirmState({
@@ -268,6 +302,13 @@ export default function AdminJobForm({
   async function persistJob() {
     const cleaned = normalizeForm(form);
 
+    const statusToSave = editing ? cleaned.status : submitIntent;
+
+    const payload = {
+      ...cleaned,
+      status: statusToSave,
+    };
+
     try {
       setSaving(true);
       setError("");
@@ -276,19 +317,24 @@ export default function AdminJobForm({
       if (editing) {
         await apiFetch(`/admin/jobs/${effectiveId}`, {
           method: "PUT",
-          body: JSON.stringify(cleaned),
+          body: JSON.stringify(payload),
         });
 
         setMsg("Vacante actualizada.");
-        initialSnapshotRef.current = cleaned;
+        initialSnapshotRef.current = normalizeForm(payload);
       } else {
         await apiFetch("/admin/jobs", {
           method: "POST",
-          body: JSON.stringify(cleaned),
+          body: JSON.stringify(payload),
         });
 
-        setMsg("Vacante creada.");
-        initialSnapshotRef.current = cleaned;
+        setMsg(
+          statusToSave === "DRAFT"
+            ? "Vacante guardada como borrador."
+            : "Vacante publicada."
+        );
+
+        initialSnapshotRef.current = normalizeForm(payload);
       }
 
       setConfirmState({ open: false, mode: null });
@@ -319,10 +365,30 @@ export default function AdminJobForm({
   }
 
   const shellClass = embedded ? "ajf ajf--embedded" : "ajf";
+
   const headingTitle = editing ? "Editar vacante" : "Crear vacante";
+
   const headingText = editing
     ? "Actualiza la información principal de esta vacante."
-    : "Completa los detalles para publicar una nueva oportunidad en la plataforma.";
+    : "Completa los detalles y decide si deseas guardarla como borrador o publicarla.";
+
+  const confirmSaveTitle = editing
+    ? "Guardar cambios"
+    : submitIntent === "DRAFT"
+    ? "Guardar borrador"
+    : "Publicar vacante";
+
+  const confirmSaveMessage = editing
+    ? "¿Deseas guardar los cambios realizados en esta vacante?"
+    : submitIntent === "DRAFT"
+    ? "¿Deseas guardar esta vacante como borrador?"
+    : "¿Deseas publicar esta vacante en el portal de empleos?";
+
+  const confirmSaveText = editing
+    ? "Sí, guardar"
+    : submitIntent === "DRAFT"
+    ? "Sí, guardar borrador"
+    : "Sí, publicar";
 
   return (
     <>
@@ -355,7 +421,11 @@ export default function AdminJobForm({
 
           <div className="ajf-card__body">
             {loading && <div className="ajf-feedback">Cargando...</div>}
-            {error && <div className="alert alert-danger ajf-alert">{error}</div>}
+
+            {error && (
+              <div className="alert alert-danger ajf-alert">{error}</div>
+            )}
+
             {msg && !embedded && (
               <div className="alert alert-success ajf-alert">{msg}</div>
             )}
@@ -367,7 +437,9 @@ export default function AdminJobForm({
                     <label htmlFor="title">Título del puesto</label>
                     <input
                       id="title"
-                      className={`ajf-input ${fieldErrors.title ? "is-invalid" : ""}`}
+                      className={`ajf-input ${
+                        fieldErrors.title ? "is-invalid" : ""
+                      }`}
                       name="title"
                       value={form.title}
                       onChange={onChange}
@@ -375,7 +447,9 @@ export default function AdminJobForm({
                       aria-invalid={Boolean(fieldErrors.title)}
                     />
                     {fieldErrors.title && (
-                      <span className="ajf-field-error">{fieldErrors.title}</span>
+                      <span className="ajf-field-error">
+                        {fieldErrors.title}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -400,7 +474,9 @@ export default function AdminJobForm({
                       />
                     </div>
                     {fieldErrors.location && (
-                      <span className="ajf-field-error">{fieldErrors.location}</span>
+                      <span className="ajf-field-error">
+                        {fieldErrors.location}
+                      </span>
                     )}
                   </div>
 
@@ -455,27 +531,33 @@ export default function AdminJobForm({
                     )}
                   </div>
 
-                  <div className="ajf-field">
-                    <label htmlFor="status">Estado</label>
-                    <select
-                      id="status"
-                      className={`ajf-select ${fieldErrors.status ? "is-invalid" : ""}`}
-                      name="status"
-                      value={form.status}
-                      onChange={onChange}
-                      aria-invalid={Boolean(fieldErrors.status)}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {JOB_STATUS_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    {fieldErrors.status && (
-                      <span className="ajf-field-error">{fieldErrors.status}</span>
-                    )}
-                  </div>
+                  {editing && (
+                    <div className="ajf-field">
+                      <label htmlFor="status">Estado</label>
+                      <select
+                        id="status"
+                        className={`ajf-select ${
+                          fieldErrors.status ? "is-invalid" : ""
+                        }`}
+                        name="status"
+                        value={form.status}
+                        onChange={onChange}
+                        aria-invalid={Boolean(fieldErrors.status)}
+                      >
+                        <option value="">Seleccionar...</option>
+                        {JOB_STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      {fieldErrors.status && (
+                        <span className="ajf-field-error">
+                          {fieldErrors.status}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="ajf-grid ajf-grid--single">
@@ -508,17 +590,39 @@ export default function AdminJobForm({
                     Cancelar
                   </button>
 
-                  <button
-                    type="submit"
-                    className="ajf-btn ajf-btn--primary"
-                    disabled={saving}
-                  >
-                    {saving
-                      ? "Guardando..."
-                      : editing
-                      ? "Guardar cambios"
-                      : "Guardar vacante"}
-                  </button>
+                  {editing ? (
+                    <button
+                      type="submit"
+                      className="ajf-btn ajf-btn--primary"
+                      disabled={saving}
+                    >
+                      {saving ? "Guardando..." : "Guardar cambios"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="ajf-btn ajf-btn--secondary"
+                        onClick={handleSaveDraft}
+                        disabled={saving}
+                      >
+                        {saving && submitIntent === "DRAFT"
+                          ? "Guardando..."
+                          : "Guardar borrador"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="ajf-btn ajf-btn--primary"
+                        onClick={handlePublishJob}
+                        disabled={saving}
+                      >
+                        {saving && submitIntent === "PUBLISHED"
+                          ? "Publicando..."
+                          : "Publicar vacante"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </form>
             )}
@@ -529,27 +633,19 @@ export default function AdminJobForm({
       <ConfirmActionModal
         isOpen={confirmState.open}
         title={
-          confirmState.mode === "save"
-            ? editing
-              ? "Guardar cambios"
-              : "Crear vacante"
-            : "Descartar cambios"
+          confirmState.mode === "save" ? confirmSaveTitle : "Descartar cambios"
         }
         message={
           confirmState.mode === "save"
-            ? editing
-              ? "¿Deseas guardar los cambios realizados en esta vacante?"
-              : "¿Deseas crear esta vacante con la información ingresada?"
+            ? confirmSaveMessage
             : "Hay cambios sin guardar. ¿Seguro que deseas salir sin guardar?"
         }
         confirmText={
-          confirmState.mode === "save"
-            ? editing
-              ? "Sí, guardar"
-              : "Sí, crear"
-            : "Sí, salir"
+          confirmState.mode === "save" ? confirmSaveText : "Sí, salir"
         }
-        cancelText={confirmState.mode === "save" ? "Cancelar" : "Seguir editando"}
+        cancelText={
+          confirmState.mode === "save" ? "Cancelar" : "Seguir editando"
+        }
         danger={confirmState.mode === "cancel"}
         loading={saving}
         onCancel={closeConfirm}

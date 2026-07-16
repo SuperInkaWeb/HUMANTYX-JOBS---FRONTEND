@@ -168,12 +168,29 @@ export function validateRequiredForForm(
     throw new Error("Número de documento es obligatorio.");
   }
 
-  if (
-    sourceForm.document_type === "DNI" &&
-    sourceForm.document_number.length !== 8
-  ) {
-    throw new Error("El DNI debe tener 8 dígitos.");
-  }
+if (
+  sourceForm.document_type === "PE_DNI" &&
+  !/^\d{8}$/.test(sourceForm.document_number)
+) {
+  throw new Error("El DNI peruano debe tener 8 dígitos.");
+}
+
+if (
+  sourceForm.document_type === "EC_CI" &&
+  !/^\d{10}$/.test(sourceForm.document_number)
+) {
+  throw new Error("La cédula ecuatoriana debe tener 10 dígitos.");
+}
+
+if (
+  sourceForm.document_type === "PASSPORT" &&
+  (sourceForm.document_number.length < 6 ||
+    sourceForm.document_number.length > 20)
+) {
+  throw new Error(
+    "El pasaporte debe tener entre 6 y 20 caracteres."
+  );
+}
 
   if (!sourceForm.country.trim()) throw new Error("País es obligatorio.");
   if (!sourceForm.department.trim()) {

@@ -13,35 +13,35 @@ const NOTIFICATIONS_LIST_POLL_MS = 10000;
 
 const pageMap = {
   "/rrhh/dashboard": {
-    section: "Panel Admin",
     title: "Dashboard",
     description: "Gestiona la operación de Humantyx Jobs.",
   },
   "/rrhh/vacantes": {
-    section: "Panel Admin",
     title: "Gestión de Vacantes",
     description: "Administra vacantes, estados y postulaciones.",
   },
   "/rrhh/candidatos": {
-    section: "Panel Admin",
     title: "Candidatos",
     description: "Consulta y gestiona perfiles de candidatos.",
   },
   "/rrhh/invitar": {
-    section: "Panel Admin",
     title: "Invitar usuario",
     description: "Envía invitaciones a nuevos usuarios RRHH.",
   },
   "/rrhh/invitaciones": {
-    section: "Panel Admin",
     title: "Invitaciones",
     description: "Revisa invitaciones enviadas y su estado.",
   },
   "/rrhh/usuarios": {
-    section: "Panel Admin",
     title: "Usuarios RRHH",
     description: "Administra usuarios internos y permisos.",
   },
+};
+
+const PANEL_NAMES = {
+  ADMIN: "Panel Admin",
+  RRHH: "Panel RRHH",
+  SUPER_ADMIN: "Panel Plataforma",
 };
 
 function formatNotificationDate(value) {
@@ -75,17 +75,23 @@ export default function AdminHeader() {
 
   const notificationsRef = useRef(null);
   const profileRef = useRef(null);
-const [profileOpen, setProfileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  const current =
+  const panelName = PANEL_NAMES[user?.role] || "Panel";
+
+  const currentPage =
     pageMap[location.pathname] ||
     Object.entries(pageMap).find(([path]) =>
       location.pathname.startsWith(path)
     )?.[1] || {
-      section: "Panel Admin",
       title: "Dashboard",
       description: "Gestiona la operación de Humantyx Jobs.",
     };
+
+  const current = {
+    section: panelName,
+    ...currentPage,
+  };
 
   const userInitial = (user?.email?.[0] || "U").toUpperCase();
 
@@ -226,26 +232,23 @@ const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(e) {
-  if (
-    notificationsRef.current &&
-    !notificationsRef.current.contains(e.target)
-  ) {
-    setNotificationsOpen(false);
-  }
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target)
+      ) {
+        setNotificationsOpen(false);
+      }
 
-  if (
-    profileRef.current &&
-    !profileRef.current.contains(e.target)
-  ) {
-    setProfileOpen(false);
-  }
-}
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    }
 
     function handleEscape(e) {
-   if (e.key === "Escape") {
-  setNotificationsOpen(false);
-  setProfileOpen(false);
-}
+      if (e.key === "Escape") {
+        setNotificationsOpen(false);
+        setProfileOpen(false);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -373,77 +376,75 @@ const [profileOpen, setProfileOpen] = useState(false);
           <i className="bi bi-gear"></i>
         </button>
 
-       <div className="hx-admin-profile" ref={profileRef}>
-  <button
-    type="button"
-    className="hx-admin-header__avatar"
-    title={user?.email || "Usuario"}
-    onClick={() => {
-      setProfileOpen(!profileOpen);
-      setNotificationsOpen(false);
-    }}
-  >
-    {userInitial}
-  </button>
+        <div className="hx-admin-profile" ref={profileRef}>
+          <button
+            type="button"
+            className="hx-admin-header__avatar"
+            title={user?.email || "Usuario"}
+            onClick={() => {
+              setProfileOpen(!profileOpen);
+              setNotificationsOpen(false);
+            }}
+          >
+            {userInitial}
+          </button>
 
-  {profileOpen && (
-    <div className="hx-admin-profile__dropdown">
+          {profileOpen && (
+            <div className="hx-admin-profile__dropdown">
+              <div className="hx-admin-profile__header">
+                <strong>{user?.email}</strong>
+                <small>{user?.role}</small>
+              </div>
 
-      <div className="hx-admin-profile__header">
-        <strong>{user?.email}</strong>
-        <small>{user?.role}</small>
-      </div>
+              <Link
+                to="/mi-perfil"
+                className="hx-admin-profile__item"
+                onClick={() => setProfileOpen(false)}
+              >
+                <i className="bi bi-person-circle"></i>
+                Mi perfil
+              </Link>
 
-      <Link
-        to="/mi-perfil"
-        className="hx-admin-profile__item"
-        onClick={() => setProfileOpen(false)}
-      >
-        <i className="bi bi-person-circle"></i>
-        Mi perfil
-      </Link>
+              <Link
+                to="/rrhh/dashboard"
+                className="hx-admin-profile__item"
+                onClick={() => setProfileOpen(false)}
+              >
+                <i className="bi bi-speedometer2"></i>
+                Dashboard
+              </Link>
 
-      <Link
-        to="/rrhh/dashboard"
-        className="hx-admin-profile__item"
-        onClick={() => setProfileOpen(false)}
-      >
-        <i className="bi bi-speedometer2"></i>
-        Dashboard
-      </Link>
+              <Link
+                to="/rrhh/vacantes"
+                className="hx-admin-profile__item"
+                onClick={() => setProfileOpen(false)}
+              >
+                <i className="bi bi-briefcase"></i>
+                Vacantes
+              </Link>
 
-      <Link
-        to="/rrhh/vacantes"
-        className="hx-admin-profile__item"
-        onClick={() => setProfileOpen(false)}
-      >
-        <i className="bi bi-briefcase"></i>
-        Vacantes
-      </Link>
+              <Link
+                to="/cambiar-password"
+                className="hx-admin-profile__item"
+                onClick={() => setProfileOpen(false)}
+              >
+                <i className="bi bi-key-fill"></i>
+                Cambiar contraseña
+              </Link>
 
-      <Link
-        to="/cambiar-password"
-        className="hx-admin-profile__item"
-        onClick={() => setProfileOpen(false)}
-      >
-        <i className="bi bi-key-fill"></i>
-        Cambiar contraseña
-      </Link>
-
-      <button
-        className="hx-admin-profile__logout"
-        onClick={() => {
-          localStorage.removeItem("token");
-          navigate("/");
-        }}
-      >
-        <i className="bi bi-box-arrow-right"></i>
-        Cerrar sesión
-      </button>
-
-    </div>
-  )}
-</div>
+              <button
+                className="hx-admin-profile__logout"
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  navigate("/");
+                }}
+              >
+                <i className="bi bi-box-arrow-right"></i>
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -1,11 +1,29 @@
 // src/utils/profileHelpers.js
-
+import countries from "world-countries";
 export const DOC_TYPES = [
   { value: "", label: "Seleccionar..." },
-  { value: "DNI", label: "DNI" },
+  // Ecuador
+  { value: "EC_CI", label: "Cédula ecuatoriana" },
+  // Perú
+  { value: "PE_DNI", label: "DNI peruano" },
+  // Internacional
   { value: "PASSPORT", label: "Pasaporte" },
   { value: "CE", label: "Carné de extranjería" },
-  { value: "OTHER", label: "Otro" },
+  { value: "OTHER", label: "Otro documento" },
+];
+
+export const COUNTRIES = [
+  { value: "", label: "Seleccionar..." },
+  ...countries
+    .map((country) => ({
+      value: country.cca2,
+      label: country.translations?.spa?.common || country.name.common,
+      callingCode: country.idd?.root
+        ? `${country.idd.root}${country.idd.suffixes?.[0] || ""}`
+        : "",
+      flag: country.flag || "",
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "es")),
 ];
 
 export const GENDERS = [

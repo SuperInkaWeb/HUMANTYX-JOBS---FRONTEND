@@ -14,8 +14,14 @@ const ALLOWED_TAGS = new Set([
   "BR",
 ]);
 
+function normalizeSpaces(value) {
+  return String(value || "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\u00A0/g, " ");
+}
+
 function escapeHtml(text) {
-  return String(text || "")
+  return normalizeSpaces(text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -27,7 +33,7 @@ function isHtmlString(value) {
 }
 
 function convertPlainTextToHtml(text) {
-  const clean = String(text || "").replace(/\r/g, "").trim();
+  const clean = normalizeSpaces(text).replace(/\r/g, "").trim();
   if (!clean) return "";
 
   const paragraphs = clean
@@ -58,7 +64,7 @@ function sanitizeHref(href) {
 
 function cleanNode(node, doc) {
   if (node.nodeType === Node.TEXT_NODE) {
-    return doc.createTextNode(node.textContent || "");
+    return doc.createTextNode(normalizeSpaces(node.textContent || ""));
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) {
@@ -69,10 +75,12 @@ function cleanNode(node, doc) {
 
   if (!ALLOWED_TAGS.has(tag)) {
     const fragment = doc.createDocumentFragment();
+
     Array.from(node.childNodes).forEach((child) => {
       const cleanedChild = cleanNode(child, doc);
       if (cleanedChild) fragment.appendChild(cleanedChild);
     });
+
     return fragment;
   }
 
@@ -102,17 +110,21 @@ function wrapStrayNodesIntoParagraphs(root, doc) {
   function flushParagraphBuffer() {
     if (!paragraphBuffer) return;
 
-    const text = (paragraphBuffer.textContent || "").replace(/\u00A0/g, " ").trim();
+    const text = normalizeSpaces(paragraphBuffer.textContent).trim();
+
     if (text) {
       nextChildren.push(paragraphBuffer);
     }
+
     paragraphBuffer = null;
   }
 
   Array.from(root.childNodes).forEach((node) => {
     const isBlock =
       node.nodeType === Node.ELEMENT_NODE &&
-      ["P", "H2", "H3", "UL", "OL", "BLOCKQUOTE"].includes(node.tagName.toUpperCase());
+      ["P", "H2", "H3", "UL", "OL", "BLOCKQUOTE"].includes(
+        node.tagName.toUpperCase()
+      );
 
     if (isBlock) {
       flushParagraphBuffer();
@@ -120,7 +132,8 @@ function wrapStrayNodesIntoParagraphs(root, doc) {
       return;
     }
 
-    const text = (node.textContent || "").replace(/\u00A0/g, " ");
+    const text = normalizeSpaces(node.textContent);
+
     if (!text.trim()) return;
 
     if (!paragraphBuffer) {
@@ -138,7 +151,7 @@ function wrapStrayNodesIntoParagraphs(root, doc) {
 
 function removeEmptyNodes(root) {
   Array.from(root.querySelectorAll("p,h2,h3,blockquote,li")).forEach((el) => {
-    const text = (el.textContent || "").replace(/\u00A0/g, " ").trim();
+    const text = normalizeSpaces(el.textContent).trim();
     const hasBr = el.querySelector("br");
 
     if (!text && !hasBr) {
@@ -147,8 +160,16 @@ function removeEmptyNodes(root) {
   });
 }
 
+function normalizeOutputHtml(html) {
+  return String(html || "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+<\/p>/g, "</p>")
+    .trim();
+}
+
 export function sanitizeRichTextHtml(input) {
-  const raw = String(input || "").trim();
+  const raw = normalizeSpaces(input).trim();
   if (!raw) return "";
 
   if (!isHtmlString(raw)) {
@@ -168,5 +189,5 @@ export function sanitizeRichTextHtml(input) {
   wrapStrayNodesIntoParagraphs(cleanRoot, doc);
   removeEmptyNodes(cleanRoot);
 
-  return cleanRoot.innerHTML.trim();
+  return normalizeOutputHtml(cleanRoot.innerHTML);
 }
