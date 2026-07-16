@@ -4,6 +4,8 @@ import { apiFetch } from "../services/api";
 import "./job-detail.css";
 import { formatEmploymentType } from "../utils/jobs";
 
+const FAVORITES_STORAGE_KEY = "humantyx_job_favorites";
+
 function formatDate(dateString) {
   if (!dateString) return "—";
 
@@ -39,9 +41,7 @@ function mapJobStatus(status) {
 }
 
 function renderJobDescription(description) {
-  if (!description) {
-    return <p>No hay descripción disponible.</p>;
-  }
+  if (!description) return <p>No hay descripción disponible.</p>;
 
   return (
     <div
@@ -78,6 +78,46 @@ export default function JobDetail() {
 
     loadJob();
   }, [id]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
+
+    if (!saved) {
+      setIsFavorite(false);
+      return;
+    }
+
+    try {
+      const favoriteIds = JSON.parse(saved);
+      setIsFavorite(favoriteIds.includes(id));
+    } catch {
+      setIsFavorite(false);
+    }
+  }, [id]);
+
+  function toggleFavorite() {
+    const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
+    let favoriteIds = [];
+
+    try {
+      favoriteIds = saved ? JSON.parse(saved) : [];
+    } catch {
+      favoriteIds = [];
+    }
+
+    const exists = favoriteIds.includes(id);
+
+    const nextFavorites = exists
+      ? favoriteIds.filter((jobId) => jobId !== id)
+      : [...favoriteIds, id];
+
+    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavorites));
+    setIsFavorite(!exists);
+  }
+
+  function copyJobLink() {
+    navigator.clipboard.writeText(window.location.href);
+  }
 
   if (loading) {
     return (
@@ -116,7 +156,7 @@ export default function JobDetail() {
   return (
     <section className="jobdetail-page py-4 py-lg-5">
       <div className="jobdetail-shell">
-       <Link to="/empleos" className="jobdetail-back">
+        <Link to="/empleos" className="jobdetail-back">
           <i className="bi bi-arrow-left"></i>
           Volver a empleos
         </Link>
@@ -138,26 +178,32 @@ export default function JobDetail() {
             </div>
 
             <div className="jobdetail-hero-right">
-  {application && (
-    <span className="jobdetail-application-pill">
-      {mapApplicationStatus(application.status)}
-    </span>
-  )}
+              {application && (
+                <span className="jobdetail-application-pill">
+                  {mapApplicationStatus(application.status)}
+                </span>
+              )}
 
-  <button type="button" className="jobdetail-action-btn">
-    <i className="bi bi-heart"></i>
-    Guardar
-  </button>
+              <button
+                type="button"
+                className={`jobdetail-action-btn ${
+                  isFavorite ? "is-favorite" : ""
+                }`}
+                onClick={toggleFavorite}
+              >
+                <i className={`bi ${isFavorite ? "bi-heart-fill" : "bi-heart"}`}></i>
+                {isFavorite ? "Guardado" : "Guardar"}
+              </button>
 
-  <button
-    type="button"
-    className="jobdetail-action-btn"
-    onClick={() => navigator.clipboard.writeText(window.location.href)}
-  >
-    <i className="bi bi-link-45deg"></i>
-    Copiar enlace
-  </button>
-</div>
+              <button
+                type="button"
+                className="jobdetail-action-btn"
+                onClick={copyJobLink}
+              >
+                <i className="bi bi-link-45deg"></i>
+                Copiar enlace
+              </button>
+            </div>
           </div>
 
           <div className="jobdetail-divider"></div>
@@ -209,7 +255,9 @@ export default function JobDetail() {
                   <i className="bi bi-send-check"></i>
                 </div>
                 <div>
-                  <span className="jobdetail-info-label">Fecha de postulación</span>
+                  <span className="jobdetail-info-label">
+                    Fecha de postulación
+                  </span>
                   <strong className="jobdetail-info-value">
                     {formatDate(application.created_at)}
                   </strong>

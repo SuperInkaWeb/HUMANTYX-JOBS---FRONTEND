@@ -1,5 +1,6 @@
 import JobDetailHeader from "./JobDetailHeader";
 import JobInfoList from "./JobInfoList";
+import { useAuth } from "../../hooks/useAuth";
 
 function renderDescription(description) {
   if (!description) {
@@ -27,6 +28,10 @@ export default function JobDetailPanel({
   applySuccess,
   onApply,
 }) {
+  const { user } = useAuth();
+
+  const canApply = !user || user?.role === "CANDIDATE";
+
   return (
     <div className="job-detail-panel">
       {!selectedId && (
@@ -57,6 +62,7 @@ export default function JobDetailPanel({
             selectedJob={selectedJob}
             applying={applying}
             onApply={onApply}
+            canApply={canApply}
           />
 
           <div className="job-detail-panel__section">

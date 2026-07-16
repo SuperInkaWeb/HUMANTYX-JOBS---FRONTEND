@@ -1,11 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeRichTextHtml } from "../../utils/richText";
 
-
 function getPlainTextFromHtml(html) {
   const temp = document.createElement("div");
   temp.innerHTML = html || "";
-  return (temp.textContent || temp.innerText || "").replace(/\u00A0/g, " ").trim();
+  return (temp.textContent || temp.innerText || "")
+    .replace(/\u00A0/g, " ")
+    .trim();
+}
+
+function sanitizeHref(url) {
+  const value = String(url || "").trim();
+
+  if (!value) return "";
+
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("mailto:")
+  ) {
+    return value;
+  }
+
+  return `https://${value}`;
 }
 
 export default function RichTextEditor({
@@ -17,16 +34,23 @@ export default function RichTextEditor({
 }) {
   const editorRef = useRef(null);
   const savedRangeRef = useRef(null);
+  const isFocusedRef = useRef(false);
+
   const [htmlMode, setHtmlMode] = useState(false);
+  const [textCounter, setTextCounter] = useState("");
 
   const safeValue = useMemo(() => sanitizeRichTextHtml(value), [value]);
 
   useEffect(() => {
     if (!editorRef.current || htmlMode) return;
 
-    const current = editorRef.current.innerHTML.trim();
+    if (isFocusedRef.current) return;
+
+    const current = editorRef.current.innerHTML;
+
     if (current !== safeValue) {
       editorRef.current.innerHTML = safeValue || "";
+      setTextCounter(getPlainTextFromHtml(safeValue));
     }
   }, [safeValue, htmlMode]);
 
@@ -35,6 +59,7 @@ export default function RichTextEditor({
     if (!selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
+
     if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
 
     savedRangeRef.current = range.cloneRange();
@@ -42,6 +67,7 @@ export default function RichTextEditor({
 
   function restoreSelection() {
     const selection = window.getSelection();
+
     if (!selection) return;
 
     if (savedRangeRef.current) {
@@ -52,28 +78,29 @@ export default function RichTextEditor({
     }
   }
 
-  function emitChange(nextHtml) {
-    const normalized = sanitizeRichTextHtml(nextHtml);
-    onChange?.(normalized);
+  function emitRawChange() {
+    const html = editorRef.current?.innerHTML || "";
+    setTextCounter(getPlainTextFromHtml(html));
+    onChange?.(html);
   }
 
-  function syncEditorAndEmit() {
+  function emitSanitizedChange() {
     if (!editorRef.current) return;
 
     const normalized = sanitizeRichTextHtml(editorRef.current.innerHTML);
 
-    if (editorRef.current.innerHTML !== normalized) {
-      editorRef.current.innerHTML = normalized;
-    }
-
-    emitChange(normalized);
+    editorRef.current.innerHTML = normalized;
+    setTextCounter(getPlainTextFromHtml(normalized));
+    onChange?.(normalized);
   }
 
   function exec(command, commandValue = null) {
     restoreSelection();
     editorRef.current?.focus();
+
     document.execCommand(command, false, commandValue);
-    syncEditorAndEmit();
+
+    emitRawChange();
     saveSelection();
   }
 
@@ -84,15 +111,17 @@ export default function RichTextEditor({
   function insertLink() {
     restoreSelection();
 
-    const currentSelection = window.getSelection()?.toString()?.trim() || "";
+    const selectedText = window.getSelection()?.toString()?.trim() || "";
+
     const url = window.prompt(
       "Ingresa la URL del enlace:",
-      currentSelection.startsWith("http") ? currentSelection : "https://"
+      selectedText.startsWith("http") ? selectedText : "https://"
     );
 
     if (!url) return;
 
     const safeHref = sanitizeHref(url);
+
     if (!safeHref) return;
 
     exec("createLink", safeHref);
@@ -101,28 +130,44 @@ export default function RichTextEditor({
   function clearFormatting() {
     restoreSelection();
     editorRef.current?.focus();
+
     document.execCommand("removeFormat", false, null);
     document.execCommand("unlink", false, null);
-    syncEditorAndEmit();
+
+    emitRawChange();
     saveSelection();
   }
 
   function handleInput() {
-    emitChange(editorRef.current?.innerHTML || "");
+    emitRawChange();
     saveSelection();
   }
 
+  function handleFocus() {
+    isFocusedRef.current = true;
+  }
+
   function handleBlur() {
-    syncEditorAndEmit();
+    isFocusedRef.current = false;
+    emitSanitizedChange();
     saveSelection();
   }
 
   function handleHtmlChange(e) {
     const normalized = sanitizeRichTextHtml(e.target.value);
+    setTextCounter(getPlainTextFromHtml(normalized));
     onChange?.(normalized);
   }
 
-  const plainText = getPlainTextFromHtml(safeValue);
+  function toggleHtmlMode() {
+    if (!htmlMode) {
+      emitSanitizedChange();
+    }
+
+    setHtmlMode((prev) => !prev);
+  }
+
+  const plainText = htmlMode ? getPlainTextFromHtml(safeValue) : textCounter;
 
   return (
     <div className={`rte ${invalid ? "is-invalid" : ""}`}>
@@ -228,7 +273,7 @@ export default function RichTextEditor({
           <button
             type="button"
             className={`rte__toggle ${htmlMode ? "is-active" : ""}`}
-            onClick={() => setHtmlMode((prev) => !prev)}
+            onClick={toggleHtmlMode}
           >
             {htmlMode ? "Vista visual" : "HTML"}
           </button>
@@ -244,6 +289,7 @@ export default function RichTextEditor({
           suppressContentEditableWarning
           data-placeholder={placeholder}
           onInput={handleInput}
+          onFocus={handleFocus}
           onBlur={handleBlur}
           onMouseUp={saveSelection}
           onKeyUp={saveSelection}
@@ -261,7 +307,9 @@ export default function RichTextEditor({
 
       <div className="rte__footer">
         <span>
-          {plainText ? `${plainText.length} caracteres de texto` : "Sin contenido"}
+          {plainText
+            ? `${plainText.length} caracteres de texto`
+            : "Sin contenido"}
         </span>
       </div>
     </div>

@@ -40,7 +40,6 @@ function formatRelativeDate(value) {
 
   const date = new Date(value);
   const now = new Date();
-
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
@@ -85,6 +84,7 @@ export default function AdminJobCard({
   onViewDescription,
   onEdit,
   onDelete,
+  onChangeStatus,
 }) {
   const status = STATUS_META[job?.status] || STATUS_META.DRAFT;
   const applicantsCount = Number(job?.applicants_count ?? 0);
@@ -100,36 +100,32 @@ export default function AdminJobCard({
               <div className="hx-job-card-v2__title-content">
                 <h3>{job?.title || "Sin título"}</h3>
 
-            <div className="hx-job-card-v2__status-row">
-
-                <span className={`hx-job-card-v2__status ${status.cls}`}>
+                <div className="hx-job-card-v2__status-row">
+                  <span className={`hx-job-card-v2__status ${status.cls}`}>
                     <i className="bi bi-check-circle-fill"></i>
                     {status.label}
-                </span>
+                  </span>
 
-                {job?.published_at && (
+                  {job?.published_at && (
                     <span className="hx-job-card-v2__published-time">
-                    • {formatRelativeDate(job.published_at)}
+                      • {formatRelativeDate(job.published_at)}
                     </span>
-                )}
-
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
           <div className="hx-job-card-v2__header-actions">
-
-                <button
-                    type="button"
-                    className="hx-job-card-v2__description-btn"
-                    onClick={() => onViewDescription(job)}
-                >
-                    <i className="bi bi-file-earmark-text"></i>
-                    <span>Descripción</span>
-                </button>
-
-                </div>
+            <button
+              type="button"
+              className="hx-job-card-v2__description-btn"
+              onClick={() => onViewDescription(job)}
+            >
+              <i className="bi bi-file-earmark-text"></i>
+              <span>Descripción</span>
+            </button>
+          </div>
         </div>
 
         <p className="hx-job-card-v2__description">
@@ -197,6 +193,42 @@ export default function AdminJobCard({
             <i className="bi bi-people"></i>
             <span>Ver postulantes</span>
           </Link>
+
+          {job?.status === "DRAFT" && (
+            <button
+              type="button"
+              className="hx-job-card-v2__icon-action"
+              onClick={() => onChangeStatus(job, "PUBLISHED")}
+              title="Publicar vacante"
+            >
+              <i className="bi bi-megaphone-fill"></i>
+              <span>Publicar</span>
+            </button>
+          )}
+
+          {job?.status === "PUBLISHED" && (
+            <button
+              type="button"
+              className="hx-job-card-v2__icon-action"
+              onClick={() => onChangeStatus(job, "CLOSED")}
+              title="Cerrar vacante"
+            >
+              <i className="bi bi-lock-fill"></i>
+              <span>Cerrar</span>
+            </button>
+          )}
+
+          {job?.status === "CLOSED" && (
+            <button
+              type="button"
+              className="hx-job-card-v2__icon-action"
+              onClick={() => onChangeStatus(job, "PUBLISHED")}
+              title="Reabrir vacante"
+            >
+              <i className="bi bi-arrow-clockwise"></i>
+              <span>Reabrir</span>
+            </button>
+          )}
 
           <button
             type="button"

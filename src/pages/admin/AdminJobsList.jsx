@@ -85,6 +85,36 @@ function normalizeText(value) {
     .trim();
 }
 
+function getStatusActionLabels(nextStatus) {
+  const map = {
+    DRAFT: {
+      title: "Mover a borrador",
+      message: "¿Deseas mover esta vacante a borrador?",
+      confirmText: "Sí, mover",
+      success: "✅ Vacante movida a borrador.",
+    },
+    PUBLISHED: {
+      title: "Publicar vacante",
+      message: "¿Deseas publicar esta vacante en el portal de empleos?",
+      confirmText: "Sí, publicar",
+      success: "✅ Vacante publicada.",
+    },
+    CLOSED: {
+      title: "Cerrar vacante",
+      message: "¿Deseas cerrar esta vacante? Ya no estará disponible para nuevas postulaciones.",
+      confirmText: "Sí, cerrar",
+      success: "✅ Vacante cerrada.",
+    },
+  };
+
+  return map[nextStatus] || {
+    title: "Cambiar estado",
+    message: "¿Deseas cambiar el estado de esta vacante?",
+    confirmText: "Sí, cambiar",
+    success: "✅ Estado actualizado.",
+  };
+}
+
 export default function AdminJobsList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +128,9 @@ export default function AdminJobsList() {
 
   const [jobToDelete, setJobToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [jobToChangeStatus, setJobToChangeStatus] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [selectedJobForDescription, setSelectedJobForDescription] =
@@ -138,7 +171,9 @@ export default function AdminJobsList() {
   }, []);
 
   useEffect(() => {
-    const isAnyModalOpen = showJobModal || Boolean(jobToDelete);
+    const isAnyModalOpen =
+      showJobModal || Boolean(jobToDelete) || Boolean(jobToChangeStatus);
+
     if (!isAnyModalOpen) return;
 
     const original = document.body.style.overflow;
@@ -147,7 +182,7 @@ export default function AdminJobsList() {
     return () => {
       document.body.style.overflow = original;
     };
-  }, [showJobModal, jobToDelete]);
+  }, [showJobModal, jobToDelete, jobToChangeStatus]);
 
   function openCreateModal() {
     setEditingJobId(null);
@@ -208,6 +243,55 @@ export default function AdminJobsList() {
       setDeleting(false);
     }
   }
+
+  function requestStatusChange(job, nextStatus) {
+    setJobToChangeStatus({
+      job,
+      nextStatus,
+    });
+  }
+
+  function cancelStatusChange() {
+    if (statusLoading) return;
+    setJobToChangeStatus(null);
+  }
+
+  async function confirmStatusChange() {
+    if (!jobToChangeStatus?.job?.id || !jobToChangeStatus?.nextStatus) return;
+
+    const { job, nextStatus } = jobToChangeStatus;
+    const labels = getStatusActionLabels(nextStatus);
+
+    try {
+      setStatusLoading(true);
+      setError("");
+      setMsg("");
+
+      await apiFetch(`/admin/jobs/${job.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title: job.title,
+          location: job.location,
+          employment_type: job.employment_type,
+          salary_range: job.salary_range,
+          description: job.description,
+          status: nextStatus,
+        }),
+      });
+
+      setMsg(labels.success);
+      setJobToChangeStatus(null);
+      await load();
+    } catch (e) {
+      setError(e.message || "No se pudo cambiar el estado de la vacante");
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  const statusConfirmLabels = getStatusActionLabels(
+    jobToChangeStatus?.nextStatus
+  );
 
   const summary = useMemo(() => {
     return {
@@ -362,6 +446,7 @@ export default function AdminJobsList() {
                     onViewDescription={openDescriptionModal}
                     onEdit={openEditModal}
                     onDelete={requestDelete}
+                    onChangeStatus={requestStatusChange}
                   />
                 );
               })
@@ -398,6 +483,22 @@ export default function AdminJobsList() {
         onClose={closeDescriptionModal}
         onSaved={load}
         apiFetch={apiFetch}
+      />
+
+      <ConfirmActionModal
+        isOpen={Boolean(jobToChangeStatus)}
+        title={statusConfirmLabels.title}
+        message={
+          jobToChangeStatus?.job
+            ? `${statusConfirmLabels.message}\n\nVacante: "${jobToChangeStatus.job.title}"`
+            : ""
+        }
+        confirmText={statusConfirmLabels.confirmText}
+        cancelText="Cancelar"
+        danger={jobToChangeStatus?.nextStatus === "CLOSED"}
+        loading={statusLoading}
+        onCancel={cancelStatusChange}
+        onConfirm={confirmStatusChange}
       />
 
       <ConfirmActionModal

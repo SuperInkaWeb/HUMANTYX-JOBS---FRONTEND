@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { apiFetch, markNotificationsAsReadByContext } from "../../services/api";
+import { markNotificationsAsReadByContext } from "../../services/api";
+import { useJobApplications } from "../../hooks/useJobApplications";
+import ApplicationDetailDrawer from "../../components/admin/applications/ApplicationDetailDrawer";
 import "./admin-job-applications.css";
 
+import ApplicationsList from "../../components/admin/applications/ApplicationsList";
+import ApplicationsKanban from "../../components/admin/applications/ApplicationsKanban";
 import ApplicationMessagesModal from "../../components/messages/ApplicationMessagesModal";
+import StatusDropdownBase from "../../components/admin/applications/StatusDropdown";
+
 import {
   getAdminApplicationMessages,
   sendAdminApplicationMessage,
@@ -19,8 +25,61 @@ const STATUS_META = {
 };
 
 const STATUS_ORDER = ["APPLIED", "IN_REVIEW", "INTERVIEW", "REJECTED", "HIRED"];
+
+const STATUS_FILTERS = [
+  { key: "ALL", label: "Todos" },
+  { key: "APPLIED", label: "Postuló" },
+  { key: "IN_REVIEW", label: "En revisión" },
+  { key: "INTERVIEW", label: "Entrevista" },
+  { key: "REJECTED", label: "No seleccionado" },
+  { key: "HIRED", label: "Contratado" },
+];
+
 const CHAT_POLL_MS = 5000;
 const LIST_POLL_MS = 15000;
+
+function formatDate(value) {
+  if (!value) return "—";
+
+  try {
+    return new Date(value).toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function formatRelativeDate(value) {
+  if (!value) return "Sin fecha";
+
+  const date = new Date(value);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return "Postuló hace unos segundos";
+  if (diffMinutes < 60) return `Postuló hace ${diffMinutes} min`;
+  if (diffHours < 24) return `Postuló hace ${diffHours} h`;
+  if (diffDays === 1) return "Postuló ayer";
+
+  return `Postuló hace ${diffDays} días`;
+}
+
+function getApplicationDate(row) {
+  return (
+    row?.application_created_at ||
+    row?.applied_at ||
+    row?.created_at ||
+    row?.application_date ||
+    null
+  );
+}
 
 function getInitials(firstName, lastName, email) {
   const fullName = `${firstName || ""} ${lastName || ""}`.trim();
@@ -47,134 +106,13 @@ function getAdminChatButtonLabel(row) {
   return "Ver chat";
 }
 
-function StatusDropdown({ value, onChange, disabled }) {
-  const btnRef = useRef(null);
-  const menuRef = useRef(null);
-
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 240 });
-
-  const meta = STATUS_META[value] || { label: value ?? "—", cls: "" };
-
-  function calcPos() {
-    const el = btnRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-
-    const width = Math.max(220, r.width);
-    const left = Math.min(Math.max(8, r.left), window.innerWidth - width - 8);
-    const top = r.bottom + 8;
-
-    setPos({ top, left, width });
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    calcPos();
-
-    const onResize = () => calcPos();
-    const onScroll = () => calcPos();
-
-    window.addEventListener("resize", onResize);
-    window.addEventListener("scroll", onScroll, true);
-
-    return () => {
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("scroll", onScroll, true);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function onDocClick(e) {
-      const btn = btnRef.current;
-      const menu = menuRef.current;
-      if (!btn || !menu) return;
-
-      if (btn.contains(e.target) || menu.contains(e.target)) return;
-      setOpen(false);
-    }
-
-    function onEsc(e) {
-      if (e.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onEsc);
-
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [open]);
-
-  const menu = open
-    ? createPortal(
-        <div
-          ref={menuRef}
-          className="hja-status-menu"
-          style={{
-            position: "fixed",
-            top: pos.top,
-            left: pos.left,
-            width: pos.width,
-            zIndex: 9999,
-          }}
-        >
-          <div className="hja-status-menu__title">Cambiar estado</div>
-
-          {STATUS_ORDER.map((k) => {
-            const m = STATUS_META[k];
-            const isSelected = k === value;
-
-            return (
-              <button
-                key={k}
-                type="button"
-                onClick={() => {
-                  if (disabled) return;
-                  if (k === value) {
-                    setOpen(false);
-                    return;
-                  }
-                  onChange(k);
-                  setOpen(false);
-                }}
-                disabled={disabled}
-                className={`hja-status-menu__item ${
-                  isSelected ? "is-selected" : ""
-                }`}
-              >
-                <span className={`hja-status-menu__dot ${m.cls}`}></span>
-                <span className="hja-status-menu__label">{m.label}</span>
-
-                {isSelected && (
-                  <span className="hja-status-menu__current">Actual</span>
-                )}
-              </button>
-            );
-          })}
-        </div>,
-        document.body
-      )
-    : null;
-
+function StatusDropdown(props) {
   return (
-    <>
-      <button
-        ref={btnRef}
-        type="button"
-        className={`hja-status-trigger ${meta.cls}`}
-        onClick={() => setOpen((v) => !v)}
-        disabled={disabled}
-      >
-        <span>{meta.label}</span>
-        <i className="bi bi-chevron-down"></i>
-      </button>
-
-      {menu}
-    </>
+    <StatusDropdownBase
+      {...props}
+      statusMeta={STATUS_META}
+      statusOrder={STATUS_ORDER}
+    />
   );
 }
 
@@ -307,15 +245,38 @@ function CvPreviewModal({
 export default function AdminJobApplications() {
   const { id: jobId } = useParams();
 
-  const [job, setJob] = useState(null);
-  const [rows, setRows] = useState([]);
+  const {
+    job,
+    rows,
+    loading,
+    error,
+    msg,
+    searchTerm,
+    setSearchTerm,
+    activeStatusFilter,
+    setActiveStatusFilter,
+    updatingId,
+    statusCounts,
+    filteredRows,
+    groupedRows,
+    total,
+    visibleTotal,
+    loadAll,
+    updateStatus,
+    getPendingStatus,
+    handleDraftStatusChange,
+    saveDraftStatus,
+    cancelDraftStatus,
+  } = useJobApplications({
+    jobId,
+    statusMeta: STATUS_META,
+    statusOrder: STATUS_ORDER,
+    getApplicationDate,
+  });
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
-
-  const [updatingId, setUpdatingId] = useState(null);
-  const [pendingStatusByApp, setPendingStatusByApp] = useState({});
+  const [viewMode, setViewMode] = useState("LIST");
+  const [selectedApplicationDetail, setSelectedApplicationDetail] =
+    useState(null);
 
   const [previewCv, setPreviewCv] = useState({
     open: false,
@@ -330,8 +291,6 @@ export default function AdminJobApplications() {
   const [previewFileName, setPreviewFileName] = useState("cv.pdf");
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [openingPreviewId, setOpeningPreviewId] = useState(null);
-
-  const total = useMemo(() => rows.length, [rows]);
 
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -418,7 +377,9 @@ export default function AdminJobApplications() {
         messageText
       );
 
-      await loadApplicationMessages(selectedApplicationForMessages.application_id);
+      await loadApplicationMessages(
+        selectedApplicationForMessages.application_id
+      );
       await loadAll(true);
     } catch (err) {
       setMessagesError(err.message || "No se pudo enviar el mensaje");
@@ -427,60 +388,23 @@ export default function AdminJobApplications() {
     }
   }
 
-  const loadAll = useCallback(
-    async (silent = false) => {
-      try {
-        if (!silent) {
-          setError("");
-          setMsg("");
-          setLoading(true);
-        }
-
-        const apps = await apiFetch(`/admin/jobs/${jobId}/applications`);
-        const list = apps?.applications ?? apps ?? [];
-        setRows(Array.isArray(list) ? list : []);
-
-        if (!silent) {
-          setPendingStatusByApp({});
-        }
-
-        try {
-          const j = await apiFetch(`/admin/jobs/${jobId}`);
-          setJob(j?.job ?? j ?? null);
-        } catch {
-          setJob(null);
-        }
-      } catch (e) {
-        if (!silent) {
-          setError(e.message || "No se pudieron cargar los postulantes");
-          setRows([]);
-        }
-      } finally {
-        if (!silent) {
-          setLoading(false);
-        }
-      }
-    },
-    [jobId]
-  );
-
   useEffect(() => {
     loadAll();
   }, [loadAll]);
 
   useEffect(() => {
-    if (!showMessagesModal || !selectedApplicationForMessages?.application_id)
+    if (!showMessagesModal || !selectedApplicationForMessages?.application_id) {
       return;
+    }
 
     async function pollChat() {
       if (document.visibilityState !== "visible") return;
 
       await loadApplicationMessages(
         selectedApplicationForMessages.application_id,
-        {
-          silent: true,
-        }
+        { silent: true }
       );
+
       await loadAll(true);
     }
 
@@ -528,80 +452,6 @@ export default function AdminJobApplications() {
     };
   }, [previewBlobUrl]);
 
-  async function updateStatus(applicationId, status) {
-    try {
-      setError("");
-      setMsg("");
-      setUpdatingId(applicationId);
-
-      await apiFetch(`/admin/applications/${applicationId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
-
-      setMsg("✅ Estado de postulación actualizado.");
-      setRows((prev) =>
-        prev.map((r) =>
-          r.application_id === applicationId
-            ? { ...r, application_status: status }
-            : r
-        )
-      );
-
-      return true;
-    } catch (e) {
-      setError(e.message || "No se pudo actualizar el estado");
-      return false;
-    } finally {
-      setUpdatingId(null);
-    }
-  }
-
-  function getPendingStatus(applicationId, currentStatus) {
-    const draft = pendingStatusByApp[applicationId];
-    if (!draft || draft === currentStatus) return null;
-    return draft;
-  }
-
-  function handleDraftStatusChange(applicationId, nextStatus, currentStatus) {
-    setError("");
-    setMsg("");
-
-    setPendingStatusByApp((prev) => {
-      const copy = { ...prev };
-
-      if (!nextStatus || nextStatus === currentStatus) {
-        delete copy[applicationId];
-        return copy;
-      }
-
-      copy[applicationId] = nextStatus;
-      return copy;
-    });
-  }
-
-  function cancelDraftStatus(applicationId) {
-    setPendingStatusByApp((prev) => {
-      const copy = { ...prev };
-      delete copy[applicationId];
-      return copy;
-    });
-  }
-
-  async function saveDraftStatus(applicationId) {
-    const nextStatus = pendingStatusByApp[applicationId];
-    if (!nextStatus) return;
-
-    const ok = await updateStatus(applicationId, nextStatus);
-    if (!ok) return;
-
-    setPendingStatusByApp((prev) => {
-      const copy = { ...prev };
-      delete copy[applicationId];
-      return copy;
-    });
-  }
-
   function getSafeFileNameFromHeaders(
     contentDisposition,
     fallbackName = "cv.pdf"
@@ -609,11 +459,13 @@ export default function AdminJobApplications() {
     if (!contentDisposition) return fallbackName;
 
     const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+
     if (utf8Match?.[1]) {
       return decodeURIComponent(utf8Match[1]).replace(/["]/g, "");
     }
 
     const normalMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+
     if (normalMatch?.[1]) {
       return normalMatch[1];
     }
@@ -653,14 +505,14 @@ export default function AdminJobApplications() {
 
     const blob = await response.blob();
     const fileName = getSafeFileNameFromHeaders(
-      response.headers.get("content-disposition"),
-      "cv.pdf"
-    );
+  response.headers.get("content-disposition"),
+  ""
+);
 
     return {
-      blobUrl: URL.createObjectURL(blob),
-      fileName,
-    };
+  blobUrl: URL.createObjectURL(blob),
+  fileName: fileName || null,
+};
   }
 
   async function downloadCvFile(candidateId, fallbackName) {
@@ -680,20 +532,34 @@ export default function AdminJobApplications() {
     const contentType = response.headers.get("content-type") || "";
 
     if (!response.ok) {
-      let message = "No se pudo descargar el CV.";
+  let message = "No se pudo descargar el CV.";
 
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
+  if (contentType.includes("application/json")) {
+    const data = await response.json();
+
+    switch (data?.code) {
+      case "CV_FILE_NOT_FOUND":
+        message =
+          "El CV está registrado, pero el archivo ya no existe en el servidor.";
+        break;
+
+      case "CV_NOT_REGISTERED":
+        message = "Este postulante aún no ha subido un CV.";
+        break;
+
+      default:
         message = data?.message || message;
-      } else {
-        const text = await response.text();
-        if (text) message = text;
-      }
-
-      throw new Error(message);
     }
+  } else {
+    const text = await response.text();
+    if (text) message = text;
+  }
+
+  throw new Error(message);
+}
 
     const blob = await response.blob();
+
     const fileName = getSafeFileNameFromHeaders(
       response.headers.get("content-disposition"),
       fallbackName || "cv.pdf"
@@ -701,11 +567,14 @@ export default function AdminJobApplications() {
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+
     a.href = url;
     a.download = fileName;
+
     document.body.appendChild(a);
     a.click();
     a.remove();
+
     URL.revokeObjectURL(url);
   }
 
@@ -716,9 +585,6 @@ export default function AdminJobApplications() {
       `${candidate.first_name ?? ""} ${candidate.last_name ?? ""}`.trim() ||
       "Candidato";
 
-    setError("");
-    setMsg("");
-
     if (previewBlobUrl) {
       URL.revokeObjectURL(previewBlobUrl);
       setPreviewBlobUrl("");
@@ -727,7 +593,7 @@ export default function AdminJobApplications() {
     setOpeningPreviewId(candidate.candidate_id);
     setPreviewError("");
     setPreviewLoading(true);
-    setPreviewFileName("cv.pdf");
+    setPreviewFileName("");
     setDownloadLoading(false);
 
     setPreviewCv({
@@ -741,8 +607,9 @@ export default function AdminJobApplications() {
       const { blobUrl, fileName } = await fetchPreviewBlob(
         candidate.candidate_id
       );
+
       setPreviewBlobUrl(blobUrl);
-      setPreviewFileName(fileName);
+      setPreviewFileName(fileName || "CV.pdf");
     } catch (e) {
       setPreviewError(
         e.message || "No se pudo cargar la vista previa del CV."
@@ -790,6 +657,14 @@ export default function AdminJobApplications() {
     });
   }
 
+  function handleOpenApplicationDetail(row) {
+    setSelectedApplicationDetail(row);
+  }
+
+  function handleCloseApplicationDetail() {
+    setSelectedApplicationDetail(null);
+  }
+
   return (
     <div className="hja-page">
       <div className="hja-header">
@@ -822,6 +697,72 @@ export default function AdminJobApplications() {
         </div>
       </div>
 
+      {!loading && rows.length > 0 && (
+        <div className="hja-toolbar">
+          <div className="hja-search">
+            <i className="bi bi-search"></i>
+
+            <input
+              type="text"
+              placeholder="Buscar por nombre, correo, teléfono o estado..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            {searchTerm && (
+              <button
+                type="button"
+                className="hja-search__clear"
+                onClick={() => setSearchTerm("")}
+                aria-label="Limpiar búsqueda"
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            )}
+          </div>
+
+          <div className="hja-view-toggle">
+            <button
+              type="button"
+              className={`hja-view-btn ${
+                viewMode === "LIST" ? "is-active" : ""
+              }`}
+              onClick={() => setViewMode("LIST")}
+            >
+              <i className="bi bi-list-ul"></i>
+              <span>Lista</span>
+            </button>
+
+            <button
+              type="button"
+              className={`hja-view-btn ${
+                viewMode === "KANBAN" ? "is-active" : ""
+              }`}
+              onClick={() => setViewMode("KANBAN")}
+            >
+              <i className="bi bi-kanban"></i>
+              <span>Kanban</span>
+            </button>
+          </div>
+
+          <div className="hja-filter-group">
+            {STATUS_FILTERS.map((filter) => (
+              <button
+                key={filter.key}
+                type="button"
+                className={`hja-filter-chip ${
+                  activeStatusFilter === filter.key ? "is-active" : ""
+                }`}
+                onClick={() => setActiveStatusFilter(filter.key)}
+              >
+                <span>{filter.label}</span>
+                <strong>{statusCounts[filter.key] || 0}</strong>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading && <div className="hja-feedback">Cargando postulantes...</div>}
       {error && <div className="alert alert-danger hja-alert">{error}</div>}
       {msg && <div className="alert alert-success hja-alert">{msg}</div>}
@@ -831,7 +772,9 @@ export default function AdminJobApplications() {
           <div className="hja-empty-card__icon">
             <i className="bi bi-people"></i>
           </div>
+
           <h3>Aún no hay postulaciones para esta vacante</h3>
+
           <p>
             Cuando los candidatos postulen, aparecerán aquí para que puedas
             revisar su perfil, su CV y gestionar su estado.
@@ -839,145 +782,75 @@ export default function AdminJobApplications() {
         </div>
       )}
 
-      {!loading && rows.length > 0 && (
-        <>
-          <div className="hja-cards">
-            {rows.map((r) => {
-              const fullName =
-                `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || "—";
-
-              const disabledStatus = updatingId === r.application_id;
-              const openingThisPreview = openingPreviewId === r.candidate_id;
-              const unreadCount = getUnreadCount(r.unread_messages_count);
-
-              const pendingStatus = getPendingStatus(
-                r.application_id,
-                r.application_status
-              );
-
-              const displayStatus = pendingStatus || r.application_status;
-              const hasPendingStatusChange = Boolean(pendingStatus);
-
-              return (
-                <article key={r.application_id} className="hja-app-card">
-                  <div className="hja-app-card__main">
-                    <div className="hja-candidate">
-                      <div className="hja-candidate__avatar">
-                        {getInitials(r.first_name, r.last_name, r.email)}
-                      </div>
-
-                      <div className="hja-candidate__info">
-                        <h3>{fullName}</h3>
-                        <p>Postulante</p>
-                      </div>
-                    </div>
-
-                    <div className="hja-app-card__contact">
-                      <div className="hja-contact-item">
-                        <i className="bi bi-envelope-fill"></i>
-                        <span>{r.email ?? "—"}</span>
-                      </div>
-
-                      <div className="hja-contact-item">
-                        <i className="bi bi-telephone-fill"></i>
-                        <span>{r.phone ?? "—"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="hja-app-card__side">
-                    <div className="hja-status-stack">
-                      <StatusDropdown
-                        value={displayStatus}
-                        onChange={(next) =>
-                          handleDraftStatusChange(
-                            r.application_id,
-                            next,
-                            r.application_status
-                          )
-                        }
-                        disabled={disabledStatus}
-                      />
-
-                      {hasPendingStatusChange && (
-                        <div className="hja-status-pending-box">
-                          <div className="hja-status-pending-box__actions">
-                            <button
-                              type="button"
-                              className="hja-inline-btn hja-inline-btn--primary"
-                              onClick={() => saveDraftStatus(r.application_id)}
-                              disabled={disabledStatus}
-                            >
-                              {disabledStatus ? "Guardando..." : "Guardar"}
-                            </button>
-
-                            <button
-                              type="button"
-                              className="hja-inline-btn hja-inline-btn--ghost"
-                              onClick={() =>
-                                cancelDraftStatus(r.application_id)
-                              }
-                              disabled={disabledStatus}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="hja-actions">
-                      <Link
-                        to={`/rrhh/vacantes/${jobId}/postulantes/${r.candidate_id}/perfil`}
-                        className="hja-icon-action"
-                        title="Ver perfil"
-                        aria-label="Ver perfil"
-                      >
-                        <i className="bi bi-person-badge-fill"></i>
-                      </Link>
-
-                      <button
-                        type="button"
-                        className="hja-icon-action"
-                        onClick={() => handleOpenPreview(r)}
-                        title="Ver CV"
-                        aria-label="Ver CV"
-                        disabled={openingThisPreview || previewLoading}
-                      >
-                        <i
-                          className={`bi ${
-                            openingThisPreview
-                              ? "bi-hourglass-split"
-                              : "bi-download"
-                          }`}
-                        ></i>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="hja-icon-action hja-icon-action--chat"
-                        onClick={() => handleOpenMessages(r)}
-                        title={getAdminChatButtonLabel(r)}
-                        aria-label={getAdminChatButtonLabel(r)}
-                      >
-                        <i className="bi bi-chat-fill"></i>
-
-                        {unreadCount > 0 ? (
-                          <span className="hja-icon-action__badge">
-                            {unreadCount}
-                          </span>
-                        ) : null}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+      {!loading && rows.length > 0 && filteredRows.length === 0 && (
+        <div className="hja-empty-card">
+          <div className="hja-empty-card__icon">
+            <i className="bi bi-search"></i>
           </div>
+
+          <h3>No hay postulantes que coincidan</h3>
+
+          <p>
+            Prueba con otro término de búsqueda o cambia el filtro de estado.
+          </p>
+        </div>
+      )}
+
+      {!loading && filteredRows.length > 0 && (
+        <>
+          {viewMode === "LIST" ? (
+            <ApplicationsList
+              rows={filteredRows}
+              jobId={jobId}
+              updatingId={updatingId}
+              openingPreviewId={openingPreviewId}
+              previewLoading={previewLoading}
+              StatusDropdown={StatusDropdown}
+              getPendingStatus={getPendingStatus}
+              getInitials={getInitials}
+              getUnreadCount={getUnreadCount}
+              getApplicationDate={getApplicationDate}
+              formatDate={formatDate}
+              formatRelativeDate={formatRelativeDate}
+              getAdminChatButtonLabel={getAdminChatButtonLabel}
+              onDraftStatusChange={handleDraftStatusChange}
+              onSaveDraftStatus={saveDraftStatus}
+              onCancelDraftStatus={cancelDraftStatus}
+              onOpenPreview={handleOpenPreview}
+              onOpenMessages={handleOpenMessages}
+              onOpenApplicationDetail={handleOpenApplicationDetail}
+            />
+          ) : (
+            <ApplicationsKanban
+              groupedRows={groupedRows}
+              STATUS_ORDER={STATUS_ORDER}
+              STATUS_META={STATUS_META}
+              jobId={jobId}
+              updatingId={updatingId}
+              openingPreviewId={openingPreviewId}
+              previewLoading={previewLoading}
+              StatusDropdown={StatusDropdown}
+              getPendingStatus={getPendingStatus}
+              getInitials={getInitials}
+              getUnreadCount={getUnreadCount}
+              getApplicationDate={getApplicationDate}
+              formatDate={formatDate}
+              formatRelativeDate={formatRelativeDate}
+              getAdminChatButtonLabel={getAdminChatButtonLabel}
+              onDraftStatusChange={handleDraftStatusChange}
+              onSaveDraftStatus={saveDraftStatus}
+              onCancelDraftStatus={cancelDraftStatus}
+              onOpenPreview={handleOpenPreview}
+              onOpenMessages={handleOpenMessages}
+              onMoveApplication={updateStatus}
+              onOpenApplicationDetail={handleOpenApplicationDetail}
+            />
+          )}
 
           <div className="hja-footer">
             <span>
-              Mostrando {total} {total === 1 ? "postulante" : "postulantes"}
+              Mostrando {visibleTotal} de {total}{" "}
+              {total === 1 ? "postulante" : "postulantes"}
             </span>
           </div>
         </>
@@ -1007,6 +880,18 @@ export default function AdminJobApplications() {
         error={messagesError}
         onClose={handleCloseMessages}
         onSend={handleSendMessage}
+      />
+
+      <ApplicationDetailDrawer
+        open={!!selectedApplicationDetail}
+        row={selectedApplicationDetail}
+        onClose={handleCloseApplicationDetail}
+        getInitials={getInitials}
+        getApplicationDate={getApplicationDate}
+        formatDate={formatDate}
+        formatRelativeDate={formatRelativeDate}
+        onOpenPreview={handleOpenPreview}
+        onOpenMessages={handleOpenMessages}
       />
     </div>
   );
