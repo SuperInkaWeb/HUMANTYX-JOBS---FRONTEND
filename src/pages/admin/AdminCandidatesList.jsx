@@ -173,7 +173,7 @@ const isAdmin = role === "ADMIN";
   <th>Email</th>
   <th>Teléfono</th>
   <th>Documento</th>
-  <th>Fecha de registro</th>
+  <th>Fecha de registros</th>
   {isAdmin && <th>Acciones</th>}
 </tr>
             </thead>
