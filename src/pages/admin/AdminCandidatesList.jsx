@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../services/api";
+import { useAuth } from "../../hooks/useAuth";
 import "./admin-candidates-list.css";
 
 function formatDate(dateString) {
@@ -31,10 +32,18 @@ function getInitials(firstName, lastName, email) {
 }
 
 export default function AdminCandidatesList() {
+  const { user } = useAuth();
+
+const role = String(user?.role || "")
+  .trim()
+  .toUpperCase();
+
+const isAdmin = role === "ADMIN";
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
 
   async function loadCandidates() {
     try {
@@ -57,6 +66,36 @@ export default function AdminCandidatesList() {
       setLoading(false);
     }
   }
+
+  async function handleDeleteCandidate(candidate) {
+  const fullName =
+    `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() ||
+    candidate.email ||
+    "este candidato";
+
+  const confirmed = window.confirm(
+    `¿Estás seguro de eliminar a ${fullName}?\n\nEsta acción no se puede deshacer.`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setDeletingId(candidate.id);
+    setError("");
+
+    await apiFetch(`/admin/candidates/${candidate.id}`, {
+      method: "DELETE",
+    });
+
+    setCandidates((currentCandidates) =>
+      currentCandidates.filter((item) => item.id !== candidate.id)
+    );
+  } catch (err) {
+    setError(err.message || "No se pudo eliminar el candidato");
+  } finally {
+    setDeletingId(null);
+  }
+}
 
   useEffect(() => {
     loadCandidates();
@@ -130,24 +169,25 @@ export default function AdminCandidatesList() {
           <table className="acl-table">
             <thead>
               <tr>
-                <th>Nombre / Candidato</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Documento</th>
-                <th>Fecha de registro</th>
-              </tr>
+  <th>Nombre / Candidato</th>
+  <th>Email</th>
+  <th>Teléfono</th>
+  <th>Documento</th>
+  <th>Fecha de registro</th>
+  {isAdmin && <th>Acciones</th>}
+</tr>
             </thead>
 
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="acl-empty">
+                 <td colSpan={isAdmin ? 6 : 5} className="acl-empty">
                     Cargando candidatos...
                   </td>
                 </tr>
               ) : filteredCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="acl-empty">
+                  <td colSpan={isAdmin ? 6 : 5} className="acl-empty">
                     No hay candidatos para mostrar.
                   </td>
                 </tr>
@@ -201,6 +241,23 @@ export default function AdminCandidatesList() {
                       <td className="acl-cell-muted">
                         {formatDate(candidate.created_at)}
                       </td>
+                      {isAdmin && (
+  <td>
+    <button
+      type="button"
+      className="acl-delete-button"
+      onClick={() => handleDeleteCandidate(candidate)}
+      disabled={deletingId === candidate.id}
+      title="Eliminar candidato"
+    >
+      <i className="bi bi-trash"></i>
+
+      {deletingId === candidate.id
+        ? " Eliminando..."
+        : " Eliminar"}
+    </button>
+  </td>
+)}
                     </tr>
                   );
                 })

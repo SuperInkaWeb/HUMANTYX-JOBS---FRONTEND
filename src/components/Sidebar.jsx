@@ -93,16 +93,16 @@ export default function Sidebar({ collapsed, onToggle }) {
             {!collapsed && <span>Gestión de Vacantes</span>}
           </Link>
 
-          {isAdmin && (
-            <Link
-              to="/rrhh/candidatos"
-              className={`hx-sidebar__item ${isActive("/rrhh/candidatos") ? "active" : ""}`}
-              title="Candidatos"
-            >
-              <i className="bi bi-people"></i>
-              {!collapsed && <span>Candidatos</span>}
-            </Link>
-          )}
+          <Link
+  to="/rrhh/candidatos"
+  className={`hx-sidebar__item ${
+    isActive("/rrhh/candidatos") ? "active" : ""
+  }`}
+  title="Candidatos"
+>
+  <i className="bi bi-people"></i>
+  {!collapsed && <span>Candidatos</span>}
+</Link>
 
           {isAdmin && (
             <Link

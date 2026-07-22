@@ -117,14 +117,10 @@ export default function App() {
               element={<AdminCandidateProfile />}
             />
 
-            <Route
-              path="/rrhh/candidatos"
-              element={
-                <RoleProtectedRoute allow={["ADMIN"]}>
-                  <AdminCandidatesList />
-                </RoleProtectedRoute>
-              }
-            />
+           <Route
+  path="/rrhh/candidatos"
+  element={<AdminCandidatesList />}
+/>
 
             <Route
               path="/rrhh/invitar"
