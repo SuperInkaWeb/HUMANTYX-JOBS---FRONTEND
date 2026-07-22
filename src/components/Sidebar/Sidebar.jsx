@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 const menuItems = [
   { to: "/rrhh/vacantes", icon: "bi-briefcase", label: "Gestión de Vacantes", roles: ["ADMIN", "RRHH"] },
-  { to: "/rrhh/candidatos", icon: "bi-people", label: "Candidatos", roles: ["ADMIN"] },
+  { to: "/rrhh/candidatos", icon: "bi-people", label: "Candidatos", roles: ["ADMIN", "RRHH"] },
   { to: "/rrhh/invitar", icon: "bi-person-plus", label: "Invitar usuario", roles: ["ADMIN"] },
   { to: "/rrhh/invitaciones", icon: "bi-envelope-paper", label: "Invitaciones", roles: ["ADMIN"] },
   { to: "/rrhh/usuarios", icon: "bi-person-gear", label: "Usuarios RRHH", roles: ["ADMIN"] },
